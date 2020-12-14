@@ -1,0 +1,50 @@
+#!/usr/bin/bash
+
+#                                          Copyright 2020 Vainstein K.
+# --------------------------------------------------------------------
+# This file is part of PrCxx.
+# 
+# PrCxx is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# any later version.
+# 
+# PrCxx is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with PrCxx.  If not, see <https://www.gnu.org/licenses/>.
+
+export LC_ALL='C'
+
+readonly driver="$PWD/test-driver"
+[ ! -x $driver ] && echo "Lack $driver in cwd." >&2 && exit 3
+
+rm -f .anyFailures
+
+for x in *.cpp
+do
+	xShow=${x//.cpp}
+	rjustBars='___'
+	if [ ${#xShow} -le 37 ]; then
+		printf -v rjustBars '%.*s' $((40 - ${#xShow})) '___________________________________________'
+	fi
+	echo -e     "\n\e[1m    _________________________________ ${xShow} ${rjustBars}\e[0m" >&2
+	{
+		$driver $x || touch .anyFailures
+	} 2>&1 | sed 's/^/\t/'
+done
+
+echo     -e   "\n\n\e[1m===============================================================\e[0m" >&2
+if [ -e .anyFailures ]; then
+	rm -f .anyFailures
+	echo -e    "\e[31;7m     Not all OK!                                               \e[0m" >&2
+	exit 4
+else
+	# After an all-clear may want to backup entire dir, so clear EXEs.
+	rm -f */a.exe
+	echo -e    "\e[32;7m     Yes all OK.                                               \e[0m" >&2
+	exit 0
+fi

@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<!-- Vainstein K 2020jul31 -->
+<html>
+<head>
+  <title>PrCxx:&nbsp; Extend GDB&apos;s Presentation of STL, C++ Types and Objects</title>
+
+  <style>
+	a:link {
+	text-decoration-line: none;
+	}
+
+	h2 {
+	background-color: lightgrey;
+	margin-top: 60px;
+	margin-bottom: 15px;
+	padding-top: 45px;
+	padding-left: 10px;
+	padding-bottom: 20px;
+	}
+    h3 {
+	background-color: lightsteelblue;
+	margin-top: 35px;
+	margin-bottom: 10px;
+	padding-top: 15px;
+	padding-left: 50px;
+	padding-bottom: 5px;
+	word-spacing: 5px;
+    }
+    h4 {
+	background-color: darkseagreen;
+	margin-bottom: 5px;
+	padding-top: 10px;
+	padding-left: 95px;
+	word-spacing: 5px;
+	}
+
+	.sidefoo {    /* Similar to a sidebar. */
+	margin-left: 150px;
+	border-style: solid;
+	border-color: whitesmoke;
+	border-top-width: 10px;
+	border-left-width: 0px;
+	border-right-width: 0px;
+	border-bottom-width: 10px;
+	padding-top: 10px;
+	padding-bottom: 10px;
+	}
+
+	red_backgd_text {
+	font-family: monospace;
+	font-weight: bold;
+	background-color: crimson;
+	}               /*What my Emacs thinks is red.*/
+
+	yellow_backgd_text {
+	font-family: monospace;
+	font-weight: bold;
+	background-color: #cccc00;
+	}               /*What my Emacs thinks is yellow.*/
+
+	kbd {                        /************Using for: GDB command names.********/
+	font-family: monospace;
+	border-width: 0px;
+	padding-bottom: 1px;
+	padding-left: 1px;
+	padding-right: 1px;
+	color: black;
+	background-color: #ffe4b5;
+	}               /* light orange*/
+
+	data {                        /************Using for: GDB command output.********/
+	font-family: monospace;
+	font-weight: bold;
+	text-decoration-line: overline;
+    text-decoration-style: wavy;
+	background-color: #ffe4b5;
+	}               /* light orange*/
+
+
+	var {                        /************Using for: GDB parameter names.********/
+	font-family: monospace;
+	font-style: normal;
+	border-width: 0px;
+	padding-bottom: 1px;
+	padding-left: 1px;
+	padding-right: 1px;
+	color: black;
+	background-color: #dcdcdc;
+	}              /* light grey */
+
+	samp {                       /************Using for: GDB parameter values.********/
+	font-family: monospace;
+	font-weight: bold;
+	text-decoration-line: overline; /*For some reason, the overline falls short; add &hairsp; at end!*/
+    text-decoration-style: wavy;
+	background-color: #dcdcdc;
+	}              /* light grey */
+  </style>
+
+</head>
+<body>
+  <h1 style="font-family:'Times New Roman',serif; word-spacing:7px;"><i>PrCxx</i>: Extend GDB&apos;s Presentation<br>&nbsp;&nbsp;&thinsp;of STL, &thinsp;C++ Types and Objects</h1>
+  <hr>
+  <table style="margin-left:175px;">
+	<colgroup span="1"></colgroup>
+	<tr><td><small><pre>
+			Copyright &copy; 2020 Vainstein K.<br>
+			Permission is granted to copy, distribute and/or modify this document
+			under the terms of the GNU Free Documentation License, Version 1.3
+			or any later version published by the Free Software Foundation;
+			with no Invariant Sections, no Front-Cover Texts, and no Back-Cover
+			Texts.  A copy of the license is includes in the section entitled &ldquo;GNU
+			Free Documentation License&rdquo;.</pre></small></td></tr>
+  </table>
+  <ul type="square">
+	<li><a href="#overview">Overview</a>
+	<li><a href="#toplev_0">Print and Explore STL Objects</a>
+	  <table border="0" rules="none"><colgroup span="5"></colgroup>
+		<tr>
+		  <td><ul>
+			  <li><a href="#print_utter_basics"><tt>p</tt>, Overridden</a>
+			  <li><a href="#q-target-addr"><tt>q-target-addr</tt></a>
+			  <li><a href="#q-iter-into"><tt>q-iter-into</tt></a>
+			  <li><a href="#q-count-elems"><tt>q-count-elems</tt></a>
+		  </ul></td>
+		  <td>&emsp;&emsp;</td>
+		  <td><ul><br>
+			  <li><a href="#q-has-elem"><tt>q-has-elem</tt></a>
+			  <li><a href="#q-elem"><tt>q-elem</tt></a>
+			  <li><a href="#q-elem-addr"><tt>q-elem-addr</tt></a>
+		  </ul></td>
+		  <td>&emsp;&emsp;</td>
+		  <td><ul><br>
+			  <li><a href="#q-elem-key-addr"><tt>q-elem-key-addr</tt></a>
+			  <li><a href="#q-buckets"><tt>q-buckets</tt></a>
+			  <li><a href="#q-more"><tt>q-more</tt></a>
+		  </ul></td>
+		</tr>
+	  </table>
+	<li><a href="#toplev_1">Concisely Name STL Types</a>
+	  <table border="0" rules="none"><colgroup span="3"></colgroup>
+		<tr>
+		  <td><ul>
+			  <li><a href="#q-whatis"><tt>q-whatis</tt></a>
+		  </ul></td>
+		  <td>&emsp;&emsp;&emsp;&emsp;</td>
+		  <td><ul>
+			  <li><a href="#q-precis"><tt>q-precis</tt></a>
+		  </ul></td>
+		</tr>
+	  </table>
+	<li><a href="#toplev_2">Print Any C++ Types and Objects (Alternatives to GDB's Built-Ins)</a>
+	  <table border="0" rules="none"><colgroup span="5"></colgroup>
+		<tr>
+		  <td><ul>
+			  <li><a href="#p-type"><tt>p-type</tt></a>
+		  </ul></td>
+		  <td>&emsp;&emsp;&emsp;&emsp;&emsp;</td>
+		  <td><ul>
+			  <li><a href="#p-deep"><tt>p-deep</tt></a>
+		  </ul></td>
+		  <td>&emsp;&emsp;&emsp;&emsp;&thinsp;</td>
+		  <!--
+		  <td><ul>
+			  <li><a href="#p-afar"><tt>p-afar</tt></a>
+		  </ul></td>
+		  -->
+		</tr>
+	  </table>
+	<li><a href="#toplev_3">Miscellaneous Features</a>
+	<li><a href="#toplev_4">Extend, to Better Pretty-Print Your Own Types</a>
+	<li><a href="#custom_params">Appendix A: Custom GDB Parameters</a>
+	<li><a href="#pertinent_builtin_params">Appendix B: Most Pertinent of GDB's Built-In Parameters</a>
+	<li><a href="#supported_STL_types">Appendix C: Supported STL Types</a>
+	<li><a href="#where_tested">Appendix D: Environments Where Tested</a>
+	<li><a href="#coping">Appendix E: Known Issues with Known Workarounds</a>
+	<li><a href="#bugs">Appendix F: Known Issues without Workarounds</a>
+	<li><a href="#doc_lic">Appendix G: GNU Free Documentation License</a>
+  </ul>
+
+  <hr><hr>
+  <h2 id="overview">Overview</h2>
+  An effort to improve the experience of debugging C++ code with GDB; by displaying <b>relevant</b> information <b>compactly</b>, and through extra insight into STL objects.
+  <br><br>
+
+
+  <hr>
+  Typographical conventions:<br><br>
+  <table>
+	<tr>
+	  <td>&emsp;</td>
+	  <td><kbd>a GDB command</kbd></td>
+	  <td>&emsp;</td>
+	  <td><data>command output</data></td>
+	  <td>&emsp;&emsp;</td>
+	  <td><var>a GDB parameter</var></td>
+	  <td>&emsp;</td>
+	  <td><samp>parameter value</samp>
+	</tr>
+  </table>
+
+
+  <h2 id="toplev_0">Print and Explore STL Objects</h2>
+
+
+  <!--------------------------------------------><h3 id="print_utter_basics">
+	<tt>print</tt>&nbsp;&nbsp;&nbsp;<i>scalarObj</i>&nbsp;|&nbsp;<i>aggregObj</i>
+  </h3><!------------------------------------------------------------------------->
+  Once your GDB has been setup to automatically load PrCxx (see <tt>HOWTO-INSTALL.txt</tt> file), instead of printing an STL object as it normally would, GDB will instead hand it over to PrCxx.
+  <p><img src="img/utter-basics~459x320.png" width="459" height="320"/></p>
+  So now our old friend <kbd>print</kbd> (or just <kbd>p</kbd>) will print
+  <ul>
+	<li>a <tt>std::string</tt> as if it were a C string
+	<li>an <tt>std::vector</tt> as if it were a C array
+	<li>an associative-lookup aggregate as if C had such a type natively
+  </ul>
+  ; which is nice.<br>
+  <hr>
+  <p class="sidefoo">
+	Should you wish to <kbd>print</kbd> something the GDB-native way, you can do so anytime without having to tear out PrCxx; just append the <kbd>/r</kbd> switch:<br><br>
+  <img src="img/p-slash-r~515x134.png" width="515" height="134"/>
+  </p>
+  <hr>
+  <p class="sidefoo">
+	Two perhaps unobvious ways to enjoy pretty-printing of STL-objects:
+	<br><br>
+	The usual modifiers of <kbd>print</kbd> all apply; if you have a <tt>std::&lt;vector&gt;</tt> of <tt>int</tt>s, you can see them as base-10 values with <kbd>p/u</kbd> or in hex with  <kbd>p/x</kbd>.
+	<br><br>
+	GDB will happily pretty-print STL object fields of your types, if you just enable <var>opaque-type-resolution</var> (set it to <tt>on</tt>).
+  </p>
+  <br>
+
+  <!--------------------------------------------><h3 id="print_iter">
+	<tt>print</tt>&nbsp;&nbsp;&nbsp;<i>iteratorObj</i>
+  </h3><!------------------------------------------------------------------------->
+  When you <kbd>print</kbd> an iterator, PrCxx will pretty-print the aggregate element said iterator points <b>to</b>:
+  <p><img src="img/print-an-iterator~487x367.png" width="487" height="367"/></p>
+  The <tt>std::back_inserter()</tt> function returns not a regular iterator pointing at an element, but an iterator adapter pointing at (one end of) <b>the entire aggregate</b>; that is why output of <tt>print</tt>ing <tt>itU</tt> is the entire <tt>v</tt>.
+  <br>
+  <hr>
+  <br>
+  <br>
+  <br>
+  <hr>  
+  Merely pretty-printing STL containers is no big deal; it might even be baked into your version of GDB.&ensp;But <b><i>we</i></b> have a few more tricks in store!
+  <br>
+
+  <!--------------------------------------------><h3 id="q-target-addr">
+	<tt>q-target-addr</tt>&nbsp;&nbsp;&nbsp;<i>indirectorObj</i>
+  </h3><!------------------------------------------------------------------------->
+  Returns address of whatever the given indirector points to or wraps.&ensp;By <i>indirector</i> here is meant any of:
+  <ul>
+	<li>iterator
+	<li>smart pointer
+	<li><tt>std::reference_wrapper</tt>
+	<li>&ldquo;smart wrapper&rdquo; introduced in C++17 <i>(</i><tt>std::any</tt>, <tt>std::optional</tt>, <tt>std::variant</tt><i>)</i>
+  </ul>
+  Note that the returned address is not just printed: it is available in GDB&apos;s value history.
+  <p><img src="img/q-target-addr~655x481.png" width="655" height="481"/></p>
+  Nice to have; but does not tell us whether address of an iterator's target is <b>valid</b>.
+
+  <!--------------------------------------------><h3 id="q-iter-into">
+	<tt>q-iter-into</tt>&nbsp;&nbsp;&nbsp;<i>aggregObj</i>&nbsp;&nbsp;&nbsp;<i>iterObj</i>
+  </h3><!------------------------------------------------------------------------->
+  The <kbd>q-iter-into</kbd> command reports whether an iterator <i>I</i> is valid with respect to an aggregate <i>A</i>; useful when you suspect an iterator has been invalidated, or maybe is valid but points into another aggregate object.
+
+  <br><br>
+  Prints: one of&emsp;<data>withinBounds_and_valid</data>&ensp;,&ensp;<data>withinBounds_but_invalid</data>&ensp;,&ensp;<data>outOfBounds</data>&ensp;.
+  <p><img src="img/q-iter-into_0th~492x389.png" width="492" height="389"/></p>
+  Note that we reported <tt>itD</tt> valid with respect to <tt>v_odds</tt>, but not with respect to <tt>v_evens</tt>.
+  <p><img src="img/q-iter-into_1th~484x127.png" width="484" height="127"/></p>
+  Now we have <tt>resize()</tt>d <tt>v_odds</tt> down to 4 elements from its original 5, and we have not invoked <tt>shrink_to_fit()</tt>.  The 5th element, to which <tt>itE</tt> had been pointed, is still <b>within bounds</b> of memory managed by <tt>v_odds</tt> (and, indeed, we can still print it just fine); but <tt>itE</tt> is <b>no longer valid</b>.
+  <hr>
+  <p class="sidefoo">
+	The <data>withinBounds_but_invalid</data> result can only obtain when container is <tt>std::basic_string&lt;Ch&gt;</tt> , <tt>std::deque&lt;T&gt;</tt> , or <tt>std::vector&lt;T&gt;</tt> .
+  </p>
+
+  <!--------------------------------------------><h3 id="q-count-elems">
+	<tt>q-count-elems</tt>&nbsp;&nbsp;&nbsp;<i>aggregObj</i>
+  </h3><!------------------------------------------------------------------------->
+  An STL container's <tt>size()</tt> function &mdash; if the container is not <tt>std::forward_list&lt;E&gt;</tt> which does not even define <tt>size()</tt> &mdash; is sometimes unavailable in a GDB session (&ldquo;<i>Function may be inlined</i>&rdquo;, GDB will suggest); therefore, it is good to have an alternative way to get element count.
+  <br><br>
+  Returns: nonnegative integer.&ensp;Note that the returned uint is not just printed: it is available in GDB&apos;s value history.
+      <p><img src="img/q-count-elems~640x105.png" width="640" height="105"/></p>
+
+  <!--------------------------------------------><h3 id="q-has-elem">
+	<tt>q-has-elem</tt>&nbsp;&nbsp;&nbsp;<i>aggregObj</i>&nbsp;&nbsp;&nbsp;<i>idx</i>&nbsp;|&nbsp;<i>key</i>
+  </h3><!------------------------------------------------------------------------->
+  Returns: <data>true</data> or <data>false</data>.
+  <p><img src="img/q-has-elem~515x263.png" width="515" height="263"/></p>
+
+
+  <!--------------------------------------------><h3 id="q-elem">
+	<tt>q-elem</tt>&nbsp;&nbsp;&nbsp;<i>aggregObj</i>&nbsp;&nbsp;&nbsp;<i>idx</i>&nbsp;|&nbsp;<i>key</i>
+  </h3><!------------------------------------------------------------------------->
+  Simply prints the found element.
+  <p><img src="img/q-elem~562x216.png" width="562" height="216"/></p>
+
+
+  <!--------------------------------------------><h3 id="q-elem-addr">
+	<tt>q-elem-addr</tt>&nbsp;&nbsp;&nbsp;<i>aggregObj</i>&nbsp;&nbsp;&nbsp;<i>idx</i>&nbsp;|&nbsp;<i>key</i>
+  </h3><!------------------------------------------------------------------------->
+  Returns address of the found element.&ensp;Note that the returned address is not just printed: it is available in GDB&apos;s value history.
+  <p><img src="img/q-elem-addr~561x218.png" width="561" height="218"/></p>
+
+
+  <!--------------------------------------------><h3 id="q-elem-key-addr">
+	<tt>q-elem-key-addr</tt>&nbsp;&nbsp;&nbsp;<i>aggregObj</i>&nbsp;&nbsp;&nbsp;<i>key</i>
+  </h3><!------------------------------------------------------------------------->
+  Returns address of the <b>key under which</b> the element was found.&emsp;Note that the returned address is not just printed: it is available in GDB&apos;s value history.
+  <p><img src="img/q-elem-key-addr~683x183.png" width="683" height="183"/></p>
+  <hr>
+  An example of when address of key might be of interest is <a href="#q-buckets">directly below</a>: looking at keys with same hashcode &mdash; <tt>6</tt>, say &mdash; we note that keys added later have a higher address.  Of course, that correspondence might not hold after a rehash or a bucket-level operation.
+
+
+  <!--------------------------------------------><h3 id="q-buckets">
+	<tt>q-buckets</tt>&nbsp;&nbsp;&nbsp;<i>aggregObj_based_on_hashtable</i>
+  </h3><!------------------------------------------------------------------------->
+  Prints elements' keys grouped by bucket; shows every key's hashcode.
+  <p><img src="img/q-buckets~715x785.png" width="715" height="785"/></p>
+  (This example was contrived to maximize visual clarity; hashing strings by their length in a real program would, of course, be an extremely bad idea!)
+
+  <!--------------------------------------------><h3 id="q-more">
+	<tt>q-more</tt>&nbsp;&nbsp;&nbsp;<i>any_supported_STL_obj</i>
+  </h3><!------------------------------------------------------------------------->
+  Prints information about given object, more than what simple GDB commands can.  Which kinds of information are available varies by input; but before looking at the ones available for only a few particular STL types, let us go over the ones available more commonly.
+
+  <h4><tt>q-more</tt> Output Available for Most Container Types</h4>
+  (All sizes in bytes.)
+  <table border="0" rules="all">
+	<colgroup span="2"></colgroup>
+	<tr><th></th><th>Notes</th></tr>
+
+	<tr><td><tt>nElements_valid</tt></td><td>
+		Count of valid elements.&nbsp;&nbsp;
+		Given &nbsp;<tt>container&lt;E&gt; co</tt>&nbsp;, this is what <tt>co.size()</tt> would return if available.
+	  </td></tr>
+
+	<tr><td><tt>nElements_allocated</tt></td><td>
+		For <i>{</i> <tt>std::basic_string&lt;Ch&gt;</tt> , <tt>std::deque&lt;T&gt;</tt> , <tt>std::vector&lt;T&gt;</tt> <i>}</i> this is &ge;&nbsp;<tt>nElements_valid</tt>.
+		<br><br>
+		For all others this is &nbsp;= <tt>nElements_valid</tt>.
+	</td></tr>
+
+	<tr><td><tt>sizeof_element</tt></td><td>
+		Given &nbsp;<tt>container&lt;E&gt; co</tt>&nbsp;, this is simply <tt>sizeof(E)</tt>.
+	</td></tr>
+
+	<tr><td><tt>sizeof_node</tt></td><td>
+		By <i>node</i> is here meant the entire per-element memory usage peculiar to this container's underlying data structure; includes pointer(s) to other nodes, the enclosed element, and any padding.
+	</td></tr>
+
+	<tr><td><tt>sz_used__objProper</tt></td><td>
+		Size of the STL object itself.&nbsp;&nbsp;
+		Given &nbsp;<tt>container&lt;E&gt; co</tt>&nbsp;, this is simply <tt>sizeof co</tt>.
+	</td></tr>
+
+	<tr><td><tt>sz_used__outsideObj</tt></td><td>
+		Memory (heap-allocated) outside of the STL object, but managed by it.
+	</td></tr>
+
+	<tr><td><tt>sz_used__total</tt></td><td>
+		<tt>sz_used__objProper + sz_used__outsideObj</tt>
+	</td></tr>
+
+	<tr><td><tt>sz_overhead</tt></td><td>
+		Overhead compared to the <b>most compact consecutive layout of the contained valid elements</b>, i.e. to a C array.
+		<br><br>
+		<tt>sz_used__total - nElements_valid * sizeof_element</tt>
+	</td></tr>
+
+	<tr><td><tt>sz_interstitial_traversal</tt></td><td>
+		A measure to help estimate the relative cache-friendliness of a container.  It is computed as sum of address distances between boundaries of the container&apos;s valid nodes, if said nodes are traversed by a normal forward iterator.
+	</td></tr>
+
+</table>
+
+
+ <h4><tt>q-more</tt> Output Specific to <tt>std::basic_string</tt></h4>
+  Example:
+  <blockquote>
+	<pre>
+smallObjectOptimization:True
+	</pre>
+  </blockquote>
+  Small-object optimization for <tt>std::basic_string</tt>s is, quite simply, when the string payload is small enough to fit into a <tt>std::basic_string</tt> object <b>itself</b>.
+
+
+  <h4><tt>q-more</tt> Output Specific to <tt>std::set</tt>, <tt>std::map</tt></h4>
+  Example:
+  <blockquote>
+	<pre>
+rbTree_height=2
+	</pre>
+  </blockquote>
+
+
+  <h4><tt>q-more</tt> Output Specific to <tt>std::unordered_set</tt>, <tt>std::unordered_map</tt></h4>
+  Example:
+  <blockquote>
+	<pre>
+nBuckets=7
+bucketLoadStats: {
+	                geometric mean = 0.001
+	               arithmetic mean = 1.400
+	 population standard deviation = 0.756
+	      0th percentile (minimum) = 0
+	               25th percentile = 0
+	      50th percentile (median) = 1
+	               75th percentile = 1.5
+	    100th percentile (maximum) = 2
+}
+	</pre>
+  </blockquote>
+  The &ldquo;average&rdquo; reported by <tt>std::unordered_set::load_factor()</tt> and  <tt>std::unordered_map::load_factor()</tt> is the arithmetic mean.
+
+<!--
+  <h4><tt>q-more</tt> Output Specific to Pointer-Elaboration Types</h4>
+  By <i>pointer-elaboration types</i> are here meant:
+  <ul>
+	<li><tt>std::unique_ptr</tt>, <tt>std::shared_ptr</tt>,  <tt>std::weak_ptr</tt>
+	<li><tt>std::ref</tt>, <tt>std::cref</tt>, <tt>std::reference_wrapper</tt>
+	<li><tt>std::any</tt>, <tt>std::optional</tt>, <tt>std::variant</tt>
+  </ul>
+-->
+
+
+  <h2 id="toplev_1">Concisely Name STL Types</h2>
+
+  Custom allocator used in code examples to follow:
+  <p><img src="img/mallocator~556x259.png" width="556" height="259"/></p>
+
+  <!--------------------------------------------><h3 id="q-whatis">
+	<tt>q-whatis</tt>&nbsp;&nbsp;&nbsp;<i>someObj</i>
+  </h3><!------------------------------------------------------------------------->
+  Like GDB's built-in <kbd>whatis</kbd>, in that it also prints an object&apos;s type; different, in that it prints STL types concisely.  That is achieved by special treatment of an STL types&apos; template parameters, adjustable with <a href="#x-template-args"><var>x-template-args</var></a>.
+  <hr>
+  Of these three <tt>std::vector&lt;E,ALLO&gt;</tt> instances, <tt>vx</tt> accepts the default allocator implicitly, <tt>vy</tt> specifies the default allocator explicitly, and <tt>vz</tt> employs a custom allocator:
+  <p align="right"><img src="img/q-whatis_0th~655x200.png" width="655" height="200"/></p>
+  How <kbd>q-whatis</kbd> handles a template arguments:
+  <table border="0" cellpadding="5" rules="all" style="margin:10px">
+	<colgroup span="3"></colgroup>
+	<!----->
+	<tr>
+	  <td>
+	  </td>
+	  <td style="width:35%">
+		<a href="#x-template-args"><var>x-template-args</var></a> set to <samp>full</samp>
+	  </td>
+	  <td style="width:35%">
+		<a href="#x-template-args"><var>x-template-args</var></a> set to <samp>skipIfDefault</samp>
+	  </td>
+	</tr>
+	<!----->
+	<tr>
+	  <td>
+		if corresponding parameter <b>has no default</b>
+		<!--
+		(always the case for an STL type&apos;s first template parameter)
+		  -->
+	  </td>
+	  <td>
+		Print, as is.<br>&emsp;<small>In screenshot above:</small>&ensp;<mark><tt>float</tt></mark>.
+	  </td>
+	  <td>
+		<b>&#x21E6;</b>&ensp;<i>same</i>
+	  </td>
+	</tr>
+	<!----->
+	<tr>
+	  <td>
+		if template argument <b>is same as</b> corresponding parameter&apos;s default
+	  </td>
+	  <td>
+		Print that particular parameter&apos;s abbreviated <i>nickname</i>, enclosed in <tt>#</tt> marks.<br>&emsp;<small>In screenshot above:</small>&ensp;<mark><tt>#ALLO#</tt></mark>.
+	  </td>
+	  <td>
+		&emsp;&emsp;&emsp;&emsp;&emsp;Skip.<br><br><br>
+	  </td>
+	</tr>
+	<!----->
+	<tr>
+	  <td>
+		if template argument <b>differs from</b> corresponding parameter&apos;s default
+	  </td>
+	  <td>
+		Print, after substituting the abbreviated nickname of any previous template parameters.<br>&emsp;<small>In screenshot above:</small>&ensp;<mark><tt>Mallocator&lt;#E#&gt;</tt></mark>.
+	  </td>
+	  <td>
+		<b>&#x21E6;</b>&ensp;<i>same</i>
+	  </td>
+	</tr>
+  </table>
+
+  <hr>
+  <p class="sidefoo">
+	Should you wish to not see template arguments at all, set <a href="#x-template-args"><var>x-template-args</var></a> to <samp>omit</samp>:<br><br>
+	<img src="img/q-whatis_1th~224x122.png" width="224" height="122"/>
+  </p>
+
+  <h4>Type Information Loss Due to <tt>auto</tt></h4>
+  Consider these two <tt>std::list&lt;float&gt;</tt> objects, the first accepting <tt>std::list</tt>&apos;s default allocator while the second uses a custom allocator (the <tt>Mallocator</tt> defined in example directly above):
+  <p><img src="img/q-whatis_5th~521x268.png" width="521" height="268"/></p>
+  Accompanying <tt>x_default_allo</tt> are 2 simple iterators which obviously ought to be of same type; and <i>mutatis mutandis</i> for <tt>y_custom_allo</tt>.
+  <br><br>
+  Handed <tt>xiterB</tt> and <tt>yiterB</tt> &mdash; declared with <tt>decltype</tt> &mdash; <kbd>q-whatis</kbd> reports allocator type if custom but skips it when default; fine.  But handed <tt>xiterA</tt> and <tt>yiterA</tt> &mdash; declared with <tt>auto</tt> &mdash; <kbd>q-whatis</kbd> prints <red_backgd_text>??</red_backgd_text> instead!
+  <br><br>
+  This is not a PrCxx bug.  PrCxx can only report information available to GDB; and as running the GDB-native <kbd>whatis</kbd> shows, some type information is unavailable to GDB when an iterator is declared with <tt>auto</tt>.  Printing <red_backgd_text>??</red_backgd_text> here is actually a feature: PrCxx knows that it lacks full information, and informs you of the fact.
+  <br><br>
+  (Similar type information loss may also occur in other cases; this is just the only one noted thus far.)
+
+  <h4>Special Treatment for <tt>std::move_iterator</tt>s</h4>
+  According to GDB, <tt>itB</tt> and <tt>itC</tt> in this example have different types:
+  <p><img src="img/q-whatis_4th~777x395.png" width="777" height="395"/></p>
+  Effectively, however, they seem to be exactly same: a non-<tt>const</tt> iterator into <tt>std::vector&lt;float&gt;</tt>, adapted to move rather than copy, and adapted to scan from the back to the front when incremented.&nbsp;&nbsp;A simplification appears justifiable and even helpful; accordingly, we
+  <ul>
+	<li>have <kbd>q-whatis</kbd> report the <b>same type</b> &mdash; the underlying, or &ldquo;pre-adapted&rdquo;, iterator type &mdash; as type of <tt>itB</tt> and <tt>itC</tt> and even the silly <tt>itD</tt>; and
+	<li>charge <kbd>q-more</kbd> with reporting whether its argument iterator has been <tt>std::move_iterator adapter wrapped</tt>.
+  </ul>
+
+  <h4>Further <tt>std::basic_string&lt;Ch&gt;</tt> and <tt>std::basic_string_view&lt;Ch&gt;</tt> Concision</h4>
+  With default template args skipped, PrCxx can further abbreviate the common specializations of these:
+    <p><img src="img/q-whatis_2th~456x213.png" width="456" height="213"/></p>
+
+	<h4>&ldquo;Depth Gauge&rdquo; for Nested Template Arguments</h4>
+	Abbreviation alone does not suffice to give visual clarity when template arguments are nested: often it is altogether non-obvious <i><b>which</b></i> nesting level a particular template argument pertains to!&ensp;To help in these cases, <kbd>q-whatis</kbd> prepends a sequence of <mark><b><tt>&apos;</tt></b></mark> marks, <b>one for each level of nesting</b>, to a template argument&apos;s nickname:
+  <p><img src="img/q-whatis_3th~765x532.png" width="765" height="532"/></p>
+  Falling far short of perfection, result nevertheless represents a substantive improvement over the alternative.
+
+  <!--------------------------------------------><h3 id="q-precis">
+	<tt>q-precis</tt>&nbsp;&nbsp;&nbsp;<i>fully_expanded_typeName</i>
+  </h3><!------------------------------------------------------------------------->
+  What if you <b>already have</b> a fully expanded type name expression (perhaps from a compiler or linker message)?&ensp;Just hand it to <kbd>q-precis</kbd>:
+    <p><img src="img/q-precis~700x634.png" width="700" height="634"/></p>
+  Unfortunately, <kbd>q-precis</kbd> can only succeed if the <b>exact</b> type given belongs to an object that GDB knows about; not even an utterly straightforward and innocuous variation, like replacing <tt>long</tt> with <mark><tt>short</tt></mark> above, will pass.
+
+
+	<h2 id="toplev_2">Print Any C++ Types and Objects (Alternatives to GDB&apos;s Built-Ins)</h2>
+
+	<!--
+	The <a href="#q-whatis"><tt>q-whatis</tt> command introduced above</a> is not limited to STL objects.
+	  -->
+
+  <!--------------------------------------------><h3 id="p-type">
+	<tt>p-type</tt> &nbsp;&nbsp;&nbsp;<i>someObj</i>&nbsp;|&nbsp;<i>typeName</i>
+	<br><hr>
+	<tt>p-stype</tt>&nbsp;&nbsp;&emsp;&emsp;&emsp;&emsp;&emsp;&nbsp;<i>typeName</i>
+	<br><hr>
+	<tt>p-vtype</tt>&nbsp;&nbsp;&nbsp;<i>someObj</i>&nbsp;
+  </h3><!------------------------------------------------------------------------->
+  Aims to present a <tt>struct</tt> or <tt>class</tt> type, complete with its fields and their relationships, in a <b>concise but informative</b> manner:
+  <p><img src="img/p-type_2th~725x183.png" width="725" height="183"/></p>
+  <ul>
+	<li><tt>static</tt> members, marked <b><tt>static</tt></b> or <b><tt>|S</tt></b>, are listed first.
+	<li>The other members are listed in layout order, i.e. by their offset relative to the top-level type.
+	<li>A <tt>struct</tt> is listed before its constituents.
+	<li>A base class is listed before the data members inherited from it.
+	<li><tt>const</tt> members are marked <yellow_backgd_text>C</yellow_backgd_text>.
+	<li><tt>volatile</tt> members are marked <yellow_backgd_text>V</yellow_backgd_text>.
+  </ul>
+  <hr>
+  <p class="sidefoo">
+	Normally, you pass either a type name string or an object name to <kbd>p-type</kbd>, and let it figure out what you meant.  If needed or desired, you can avail yourself of the <kbd>p-stype</kbd> variant (always interprets its argument as type name string) or the <kbd>p-vtype</kbd> variant (always interprets its argument as object name).<br><br>
+	Whereas <kbd>p-vtype</kbd> becomes available only once GDB has a runtime state to examine, <kbd>p-stype</kbd> is available as soon as GDB has loaded symbol tables &mdash; before you have issued <kbd>run</kbd>!
+  </p>
+  <hr>
+
+  For each of several aspects (layout, composition, inheritance, ...) <kbd>p-type</kbd> lets you choose the amount of information presented &mdash; from &ldquo;omit altogether&rdquo; to &ldquo;full info dump&rdquo;; the sub-sections below explain those choices.
+  <ul type="disc">
+	<li><a href="#p-type__x-print-width...">Adjust Print Width of Member Types <i>contra</i> Member Names</a>
+	<li><a href="#p-type__x-layout">Choose Presentation of: Layout</a>
+	<li><a href="#p-type__x-nested-datamemb">Choose Presentation of: Composition</a>
+	<li><a href="#p-type__x-base-classes">Choose Presentation of: Inheritance</a>
+	<li><a href="#p-type__x-template-args">Choose Presentation of: Template Arguments</a>
+	<li><a href="#p-type__x-heur-abbr">Toggle Heuristic Abbreviation of Types</a>
+	<li><a href="#p-type__x-underly">Underlying or Alternative Type Designations</a>
+  </ul>
+
+
+  <h4 id="p-type__x-print-width...">Adjust Print Width of Member Types <i>contra</i> Member Names</h4>
+  The former is controlled by <a href="#x-print-width--member-type"><var>x-print-width--member-type</var></a>, the latter by <a href="#x-print-width--member-name"><var>x-print-width--member-name</var></a>; adjust according to your preference and need.
+
+  <h4 id="p-type__x-layout">Choose Presentation of: Layout</h4>
+  When <a href="#x-layout"><var>x-layout</var></a> is set to <samp>full</samp>, each data member&apos;s offset and size are shown, and all padding regions are indicated (look for <mark><tt>Pad|</tt></mark>).<br><br>When to <samp>onlySize</samp>, only data member sizes are shown.<br><br>When to <samp>omit</samp>, not even data member sizes:
+  <p><img src="img/p-type_0th~786x358.png" width="786" height="358"/></p>
+
+
+  <h4 id="p-type__x-nested-datamemb">Choose Presentation of: Composition</h4>
+  Consider these <tt>struct</tt>s related by composition:<br>
+  <img src="img/p-type_3Ath~643x108.png" width="643" height="108"/><br>
+  Here <tt>Sa</tt> has-a <tt>Sb</tt>, and <tt>Sb</tt> has-a <tt>Sc</tt>.
+  <hr>
+
+  <table border="0" rules="none">
+	<colgroup span="3"></colgroup>
+	<tr>
+	  <td><img src="img/p-type_3Bth~406x139.png" width="406" height="139"/></td>
+	  <td>&ensp;</td>
+	  <td>
+		When <a href="#x-nested-datamemb"><var>x-nested-datamemb</var></a> is set to <samp>omit</samp>, top-level data members appear opaque:
+		<br><br><br>
+		(Pretty much like looking at a class&apos;s definition in your source.)
+	  </td>
+	</tr>
+  </table>
+  <hr>
+  <table border="0" rules="none">
+	<colgroup span="3"></colgroup>
+	<tr>
+	  <td><img src="img/p-type_3Cth~406x227.png" width="406" height="227"/></td>
+	  <td>&ensp;</td>
+	  <td>
+		When <a href="#x-nested-datamemb"><var>x-nested-datamemb</var></a> is set to <samp>flatten</samp>, nested structs are not shown &mdash; you only see their data members:
+		<br><br><br><br>
+		This view &ldquo;flattens&rdquo; (hence the name) a composition hierarchy; if we organized classes related by composition as nodes of a tree, this would be the view of just the leaves.
+	  </td>
+	</tr>
+  </table>
+  <hr>
+  <table border="0" rules="none">
+	<colgroup span="3"></colgroup>
+	<tr>
+	  <td><img src="img/p-type_3Eth~455x453.png" width="455" height="453"/></td>
+	  <td>&ensp;</td>
+	  <td>
+		When <a href="#x-nested-datamemb"><var>x-nested-datamemb</var></a> is set to <samp>full</samp>, we show all the nested objects; each's composition relation to the top-level type is specified on a separate line underneath:
+		<br>
+		<ul><li>&ldquo;<i>N</i><tt>=dep</tt>&rdquo; means  <i>N</i> is the nesting depth;</ul>
+		<ul><li>&ldquo;<tt>comPar=</tt><i>X</i>&rdquo; means <i>X</i> is the composition parent;</ul>
+		<ul><li>&ldquo;<tt>comAnc=</tt><i>Y</i>&rdquo; means <i>Y</i> is the <i>composition ancestor</i> (i.e. the ancestor whose parent is the top-level type).</ul>
+		<hr>
+		Tips for getting the most from such output:
+		<ul>
+		  <li>To focus on a nested struct, simply <kbd>p-type</kbd> <i><b>it</b></i>: in this example, <kbd>p-type&nbsp;Sb</kbd> and <kbd>p-type&nbsp;sa._sb</kbd> will both &ldquo;drill down&rdquo; on the nested <tt>Sb</tt> struct.
+			<!-- ...or  this way???
+		  <li>To focus on a nested struct, simply <kbd>p-type</kbd> <b>it</b>: in this example, <kbd>p-type</kbd><tt>&nbsp;Sb</tt> and <kbd>p-type</kbd><tt>&nbsp;sa._sb</tt> will both &ldquo;drill down&rdquo; on the nested <tt>Sb</tt> struct.
+			-->
+		  <li>Search for the name of a nested datatype, to immediately see its parent and children; easily done after saving to a GDB logfile or pasting into a tempfile (and altogether effortles if running GDB from Emacs).
+		</ul>
+	  </td>
+	</tr>
+  </table>
+  <hr>
+
+  <p class="sidefoo">
+	Should you wish to see the full display but without the extra lines denoting composition relations, just disable <a href="x-relations"><var>x-relations</var></a> (i.e. set to <samp>off</samp>).
+	<!--
+		<img src="img/p-type_3Dth~392x286.png" width="392" height="286"/>
+		-->
+  </p>
+
+  <hr>
+  <p class="sidefoo">
+	PrCxx recognizes STL types, and will not descend into the struct implementing an STL type if said struct is <b>a data member of</b> the top-level type you asked <kbd>p-type</kbd> about.&ensp;For example, PrCxx descends into <tt>TwoWays::_sB</tt>, but not into <tt>TwoWays::_sA</tt> here:
+	<br><br>
+	<img src="img/p-type_8th~535x245.png" width="535" height="245"/>
+  </p>
+
+
+  <h4 id="p-type__x-base-classes">Choose Presentation of: Inheritance</h4>
+  Consider these <tt>struct</tt>s related by inheritance:<br>
+  <img src="img/p-type_5Ath~515x216.png" width="515" height="216"/><br>
+  <hr>
+
+  <table border="0" rules="none">
+	<colgroup span="3"></colgroup>
+	<tr>
+	  <td><img src="img/p-type_5Bth~499x75.png" width="499" height="75"/></td>
+	  <td>&ensp;</td>
+	  <td>
+		When <a href="#x-base-classes"><var>x-base-classes</var></a> is set to <samp>omit</samp>, neither base classes nor any data members therefrom inherited are shown.
+	  </td>
+	</tr>
+  </table>
+  <hr>
+  <table border="0" rules="none">
+	<colgroup span="3"></colgroup>
+	<tr>
+	  <td><img src="img/p-type_5Cth~498x187.png" width="498" height="187"/></td>
+	  <td>&ensp;</td>
+	  <td>
+		When <a href="#x-base-classes"><var>x-base-classes</var></a> is set to <samp>flatten</samp>, base classes are omitted but data members inherited from them are shown:
+		<br><br><br>
+		This view &ldquo;flattens&rdquo; (hence the name) an inheritance hierarchy; if we organized classes related by inheritance as nodes of a tree, this would be the view of just the leaves.
+	  </td>
+	</tr>
+  </table>
+  <hr>
+  <table border="0" rules="none">
+	<colgroup span="3"></colgroup>
+	<tr>
+	  <td><img src="img/p-type_5Dth~497x275.png" width="497" height="275"/></td>
+	  <td>&ensp;</td>
+	  <td>
+		When <a href="#x-base-classes"><var>x-base-classes</var></a> is set to <samp>skipIfEmpty</samp>, only empty bases are skipped:
+		<br><br><br>
+		This view can be most helpful when working with a &ldquo;dauntingly tall&rdquo; inheritance hierarchy.
+		<br><br><br>
+		Note use of numbered tags (delimited by green <tt>@</tt> marks) to refer to respective base classes.
+	  </td>
+	</tr>
+  </table>
+  <hr>
+  <table border="0" rules="none">
+	<colgroup span="3"></colgroup>
+	<tr>
+	  <td><img src="img/p-type_5Eth~498x530.png" width="498" height="530"/></td>
+	  <td>&ensp;</td>
+	  <td>
+		When <a href="#x-base-classes"><var>x-base-classes</var></a> is set to <samp>full</samp>, we show all base classes and data members inherited therefrom; each member's inheritance relation to the top-level type is specified on a separate line underneath:
+		<br>
+		<ul><li>&ldquo;<i>N</i><tt>=dep</tt>&rdquo; means  <i>N</i> is the nesting depth;</ul>
+		<ul><li>&ldquo;<tt>inhPar=</tt><i>X</i>&rdquo; means <i>X</i> is the inheritance parent;</ul>
+		<ul><li>&ldquo;<tt>inhAnc=</tt><i>Y</i>&rdquo; means <i>Y</i> is the <i>inheritance ancestor</i> (i.e. the point where inheritance chain ends).</ul>
+		<br><br><br><br>
+		<br><br><br><br>
+		The notation is intentionally analogous to that used in reporting composition relations.
+	  </td>
+	</tr>
+  </table>
+  <hr>
+
+  <p class="sidefoo">
+	Should you wish to see the full display but without the extra lines denoting inheritance relations, just disable <a href="x-relations"><var>x-relations</var></a> (i.e. set to <samp>off</samp>).
+  </p>
+
+
+  <h4 id="p-type__x-template-args">Choose Presentation of: Template Arguments</h4>
+
+  PrCxx handles non-STL types&apos; template arguments much the same way it handles STL types&apos; (refresh <a href="#q-whatis">above</a>), but with two major differences:
+
+  <ul>
+	<li>For each supported STL type  PrCxx &ldquo;knows&rdquo; which of an instantiation&apos;s template arguments are defaults, but no such knowledge is coded in PrCxx for <b>your</b> types; therefore, <kbd>p-type</kbd> of a non-STL templated type will yield same output with <var>x-template-args</var> = <samp>skipIfDefault</samp> as with <var>x-template-args</var> = <samp>full</samp>.
+  </ul><ul>
+	<li>For each supported STL type PrCxx &ldquo;knows&rdquo; a mnemonic nickname for each template parameter, but no such knowledge is coded in PrCxx for <b>your</b> types; therefore, for a non-STL templated type, template arguments will be referred to not by nickname but by number, similarly enclosed in <tt>#</tt> marks.&ensp;(A <i>nicknumber</i>, if you will.)
+  </ul>
+  Consider these <tt>struct</tt> templates and instantiations:
+  <p><img src="img/p-type_4Ath~688x505.png" width="688" height="505"/></p>
+  PrCxx never substitutes <b>numeric</b> template arguments with references to their positions in the type's template parameter list.  (All too easy to conceive of a scenario where such a substitution would be a risible solecism; and, abbreviating one number with another number would retard clarity while not advancing concision.)
+  <br><br>
+	In type designations of STL objects, nicknumbers are substituted only for the <b>template parameters without defaults</b>.&ensp;In example above, only the first 2 template arguments of <tt>Tb::_br</tt>&apos;s type are so substituted; <tt>std::greater<#K#></tt> is printed just as it would be if we lacked context of containing <tt>struct</tt>, as is the case when we invoke <kbd>q-whatis</kbd> on <tt>Tb::_br</tt> directly.
+
+  <h4 id="p-type__x-heur-abbr">Toggle Heuristic Abbreviation of Types</h4>
+  PrCxx will always abbreviate a type, by textual substitution of base class and template argument types, when such an abbreviation is <b>certainly correct</b>; for example, the special <tt>@TOPLEV@</tt> tag referring to the top-level type you&apos;d asked <kbd>p-type</kbd> about.
+  <p><img src="img/p-type_11Ath~580x96.png" width="580" height="96"/></p>
+  With <a href="x-heur-abbr"><var>x-heur-abbr</var></a> enabled (i.e. set to <samp>on</samp>), PrCxx will also perform abbreviations that are <b>highly plausible</b>.
+
+  <table border="0" rules="none">
+	<colgroup span="3"></colgroup>
+	<tr>
+	  <td><img src="img/p-type_11Bth~518x242.png" width="518" height="242"/></td>
+	  <td>&ensp;</td>
+	  <td>
+		Most often, as with <tt>cx</tt> in this example, such abbreviations improve concision and hence clarity:
+		<br><br><br><br>
+		But in some cases, as with <tt>cy</tt> in this example, such abbreviations can add gratuitous confusion:
+	  </td>
+	</tr>
+  </table>
+  <hr>
+  <table border="0" rules="none">
+	<colgroup span="3"></colgroup>
+	<tr>
+	  <td><img src="img/p-type_11Cth~523x272.png" width="523" height="272"/></td>
+	  <td>&ensp;</td>
+	  <td>
+		If confronted with such a case, you can restrict PrCxx to making <b>only</b> certainly-correct abbreviations; just disable <a href="x-heur-abbr"><var>x-heur-abbr</var></a> (i.e. set it to <samp>off</samp>):
+		<br><br><br><br>
+		<br><br><br><br>
+	  </td>
+	</tr>
+  </table>
+
+
+  <h4 id="p-type__x-underly">Underlying or Alternative Type Designations</h4>
+  With <a href="x-underly"><var>x-underly</var></a> enabled (i.e. set to <samp>on</samp>), any alternative designations known for each data members&apos; types are shown on a separate line underneath.  A simplest example of alternative type designation would be that found in the source &mdash; before decoding all <tt>typedef</tt>s.
+  <p><img src="img/p-type_1th~630x339.png" width="630" height="339"/></p>
+
+
+
+  <!--------------------------------------------><h3 id="p-deep">
+	<tt>p-deep</tt>&nbsp;&nbsp;&nbsp;<i>someObj</i>
+  </h3><!------------------------------------------------------------------------->
+  An extension of <a href="#p-type"><kbd>p-vtype</kbd></a>, <kbd>p-deep</kbd> also prints each data member&apos;s value.&ensp;The value is shown on a separate line directly following each data member, in blue; PrCxx tries to show each value in up to 2 ways:
+  <br><br>
+  <img src="img/p-deep_0th~454x142.png" width="454" height="142"/>
+  <hr>
+  <table border="0" rules="none">
+	<colgroup span="3"></colgroup>
+	<tr>
+	  <td>On the <b>left</b>, italicized, the raw bytes in hex.&ensp;(Up to 12 leading bytes.)</td>
+	  <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</td>
+	  <td>On the <b>right</b>, &ldquo;prettily&rdquo; &mdash; where doable without ambiguity.&ensp;Recall, you can always <kbd>print</kbd> (<kbd>p</kbd>).</td>
+	</tr>
+  </table>
+  <hr>
+  <p><img src="img/p-deep_1th~530x303.png" width="530" height="303"/></p>
+
+
+<!--
+  <h3>
+	<tt>p-afar</tt>&nbsp;&nbsp;&nbsp;<i>someObj</i>
+  </h3>
+  Where <a href="#p-deep"><kbd>p-deep</kbd></a> digs in to analyze details of an object, <kbd>p-afar</kbd> considers an object as from a distance, and shows a brief overview.
+-->
+
+
+
+  <h2 id="toplev_3">Miscellaneous Features</h2>
+
+  <!-------------------------------------------------------------------------><br><br>
+  <h3>Alternative Indexing of <tt>std::pair</tt></h3>
+  These will work as <i>lookupKey</i>:
+  <ul>
+	<li><tt>0</tt> <b>or</b> <tt>first</tt>
+	<li><tt>1</tt> <b>or</b> <tt>second</tt>
+  </ul>
+
+  <!-------------------------------------------------------------------------><br><br>
+  <h3>Alternative Indexing of <tt>std::ratio</tt></h3>
+  These will work as <i>lookupKey</i> (case-insensitive):
+  <ul>
+	<li><tt>0</tt> <b>or</b> <tt>num</tt> <b>or</b> <tt>numer</tt>
+	<li><tt>1</tt> <b>or</b> <tt>den</tt> <b>or</b> <tt>denom</tt>
+  </ul>
+
+  <!-------------------------------------------------------------------------><br><br>
+  <h3 id="x-remind"><tt>x-remind</tt> Yourself of Parameters' Current & Default Values</h3>
+  Shows at once all of <a href="#custom_params">our custom GDB parameters</a>.  For each parameter, lists the possible values, with the <b>default</b> value shown bracketed, and the <b>current</b> value shown against yellow background.
+  <p><img src="img/x-remind~594x222.png" width="594" height="222"/></p>
+  In example above all parameters are set to their defaults, except for <var>x-relations</var>, <var>x-base-classes</var>, and <var>x-print-width--member-name</var>.
+
+  <!-------------------------------------------------------------------------><br><br>
+  <h3 id="x-default-all"><tt>x-default-all</tt></h3>
+  Resets all of <a href="#custom_params">our custom GDB parameters</a> to their defauls.
+
+
+  <h3><tt>z-frames</tt>, <tt>z-blocks</tt>, and Related</h3>
+  These commands do not cohere with PrCxx&apos;s main thrust, and anyway are not polished enough to speak much about.  Briefly:
+  <p><img src="img/z-frames_0th~875x300.png" width="875" height="300"/></p>
+  GDB&apos;s built-in <kbd>backtrace</kbd> is complemented by <kbd>z-blocks</kbd>:
+  <p><img src="img/z-frames_1th~661x556.png" width="661" height="556"/></p>
+  You can view blocks from the standpoint of another frame without changing frame selection, with <kbd>z-iterdump-block-of-frame-N</kbd>:
+  <p><img src="img/z-frames_2th~689x519.png" width="689" height="519"/></p>
+  All in all, commands related to <kbd>z-frames</kbd> and <kbd>z-blocks</kbd> are:
+  <ul>
+	<li><kbd>z-iterdump-block-of-frame-N</kbd>&nbsp;&nbsp;&nbsp;<i>frame#</i>
+	<li><kbd>z-iterdump-block-curr</kbd>
+	<li><kbd>z-iterdump-block-global</kbd>
+	<li><kbd>z-iterdump-block-static</kbd>
+  </ul>
+  <hr>
+  <p class="sidefoo">
+	You can choose how source files are identified by toggling the <var>x-full-paths</var> parameter: when enabled (i.e. set to <samp>on</samp>), full path is printed; when disabled, just the basename &mdash; <tt>demo.cpp</tt> in the  example above.
+  </p>
+
+
+  <h2 id="toplev_4">Extend, to Better Pretty-Print Your Own Types</h2>
+  <tt>// TODO</tt>
+
+
+
+  <h2 id="custom_params">Appendix A: Custom GDB Parameters</h2>
+  Just as GDB's built-in parameters, custom parameters enjoy GDB's tab-completion (both of parameter name and legal values) when being <tt>set</tt>, respond to <tt>show</tt>, and print a short explanation if prefaced with <kbd>help set</kbd> or <kbd>help show</kbd>.
+  <hr>
+  All these can be set with <tt>set</tt> and shown with <tt>show</tt>, just like GDB's own built-in parameters; but for these, you also have
+  <a href="#x-remind"><kbd>x-remind</kbd></a>
+  and
+  <a href="#x-default-all"><kbd>x-default-all</kbd></a>
+
+  <!-- bool-valued -->
+  <h4 id="x-full-paths"><tt>x-full-paths</tt> &rarr; <tt>on</tt> | <tt>off</tt></h4>
+  <h4 id="x-heur-abbr"><tt>x-heur-abbr</tt> &rarr; <tt>on</tt> | <tt>off</tt></h4>
+  <h4 id="x-relations"><tt>x-relations</tt> &rarr; <tt>on</tt> | <tt>off</tt></h4>
+  <h4 id="x-underly"><tt>x-underly</tt> &rarr; <tt>on</tt> | <tt>off</tt></h4>
+  <!-- enum-valued -->
+  <h4 id="x-layout"><tt>x-layout</tt> &rarr;&nbsp;
+	<tt>full</tt> | <tt>onlySize</tt> | <tt>omit</tt></h4>
+  <h4 id="x-base-classes"><tt>x-base-classes</tt> &rarr;&nbsp;
+	<tt>full</tt> | <tt>skipIfEmpty</tt> | <tt>flatten</tt> | <tt>omit</tt></h4>
+  <h4 id="x-nested-datamemb"><tt>x-nested-datamemb</tt> &rarr;&nbsp;
+  	<tt>full</tt> | <tt>flatten</tt> | <tt>omit</tt></h4>
+  <h4 id="x-template-args"><tt>x-template-args</tt> &rarr;&nbsp;
+  	<tt>full</tt> | <tt>skipIfDefault</tt> | <tt>omit</tt></h4>
+  <!-- uint-valued -->
+  <h4 id="x-print-width--member-type"><tt>x-print-width--member-type</tt> &rarr;&nbsp;
+	<i>N</i></h4>
+  <i>N</i> &ge; 10.
+  <h4 id="x-print-width--member-name"><tt>x-print-width--member-name</tt> &rarr;&nbsp;
+	<i>N</i></h4>
+  <i>N</i> &ge; 5.
+
+
+
+  <h2 id="pertinent_builtin_params">Appendix B: Most Pertinent of GDB's Built-In Parameters</h2>
+  <table border="0" cellpadding="3" rules="all">
+	<colgroup span="3"></colgroup>
+	<tr><th></th><th></th><th>Notes</th></tr>
+
+	<tr>
+      <td><var>print address</var></td>
+	  <td>boolean, <tt>on</tt>|<tt>off</tt></td>
+      <td>If <tt>on</tt>, whenever GDB prints some object with address known to compiler (not a temporary value!) it will also print said object's address.<br/>Adds to confusion when printing a <tt>std::string</tt>.</td>
+	</tr>
+
+	<tr>
+      <td><var>print array</var></td>
+	  <td>boolean, <tt>on</tt>|<tt>off</tt></td>
+      <td>If <tt>on</tt>, GDB will print array-like aggregates with each element on its own line.</td>
+	</tr>
+
+	<tr>
+      <td><var>print elements</var></td>
+	  <td>unsigned, <i>N</i></td>
+      <td>Limits how many many of an aggregate's elements GDB will print (starting from the first).&nbsp;&nbsp;If <tt>0</tt>, unlimited.</td>
+	</tr>
+
+	<tr>
+      <td><var>print null-stop</var></td>
+	  <td>boolean, <tt>on</tt>|<tt>off</tt></td>
+      <td>If <tt>on</tt>, GDB will stop printing a string-like aggregate when happens on a <tt>NUL</tt> character.</td>
+	</tr>
+
+	<tr>
+      <td><var>opaque-type-resolution</var></td>
+	  <td>boolean, <tt>on</tt>|<tt>off</tt></td>
+      <td>If <tt>on</tt>, <kbd>print</kbd> will descend into a type <i>T</i>, even if <i>T</i> is not natively printable.&ensp;Now that you have PrCxx, you can enable this parameter and not risk a dog&apos;s breakfast on your screen.</td>
+	</tr>
+
+	<tr>
+      <td><var>print repeats</var></td>
+      <td>unsigned, <i>N</i></td>
+	  <td>An <i>M</i>-long streak of identical elements will be replaced by "<tt>repeats M times</tt>", if <i>M</i> &ge; <i>N</i> and <i>N</i> &ne; 0.<br/>
+		Decides whether all individual elements of a <tt>std::bitset</tt> are printed.</td>
+	</tr>
+
+	<tr>
+      <td><var>print static-members</var></td>
+	  <td>boolean, <tt>on</tt>|<tt>off</tt></td>
+      <td>If <samp>off</samp>, neither GDB&apos;s built-in <kbd>ptype</kbd> nor PrCxx&apos;s <kbd>p-type</kbd> will display the <tt>static</tt> data members of a <tt>class</tt>.
+	</tr>
+
+  </table>
+
+
+
+  <h2 id="supported_STL_types">Appendix C: Supported STL Types</h2>
+  <ul>
+	<li><tt>std::any</tt>
+	<li><tt>std::array&lt;T,&#x2115;&gt;</tt>
+	<li><tt>std::atomic&lt;T&gt;</tt>
+	<li><tt>std::atomic_flag</tt>
+	<li><tt>std::basic_string&lt;Ch,ChTRAITS,ALLO&gt;</tt>
+	<li><tt>std::basic_string_view&lt;Ch,ChTRAITS&gt;</tt>
+	<li><tt>std::bitset&lt;&#x2115;&gt;</tt>
+	<li><tt>std::deque&lt;E,ALLO&gt;</tt>
+<!--	<li><tt>std::exception</tt>
+Yeah, but not enough there to talk about.
+-->
+	<li><tt>std::forward_list&lt;E,ALLO&gt;</tt>
+	<li><tt>std::function&lt;R(T1,T2,&hellip;)&gt;</tt>
+	<li><tt>std::initializer_list&lt;T&gt;</tt>
+	<li><tt>std::integer_sequence&lt;&#x2124;1,&#x2124;2,&hellip;&gt;</tt>
+	<li><tt>std::list&lt;E,ALLO&gt;</tt>
+	<li><tt>std::map&lt;K,V,CMP,ALLO&gt;</tt>
+	<li><tt>std::multimap</tt>&emsp;<i>See</i>&ensp;<tt>std::map</tt>
+	<li><tt>std::multiset</tt>&emsp;<i>See</i>&ensp;<tt>std::set</tt>
+	<li><tt>std::pair&lt;K,V&gt;</tt>
+	<li><tt>std::optional&lt;T&gt;</tt>
+	<li><tt>std::priority_queue&lt;E,CONT,CMP&gt;</tt>
+	<li><tt>std::ratio&lt;NUMER,DENOM&gt;</tt>
+	<li><tt>std::reference_wrapper&lt;T&gt;</tt>
+	<li><tt>std::queue&lt;E,CONT&gt;</tt>
+	<li><tt>std::set&lt;E,CMP,ALLO&gt;</tt>
+	<li><tt>std::stack&lt;E,CONT&gt;</tt>
+	<li><tt>std::string</tt>&emsp;<i>See</i> <tt>std::basic_string</tt>
+	<li><tt>std::string_view</tt>&emsp;<i>See</i> <tt>std::basic_string_view</tt>
+	<li><tt>std::shared_ptr&lt;T&gt;</tt>
+	<li><tt>std::tuple&lt;T1,T2,&hellip;&gt;</tt>
+	<li><tt>std::unique_ptr&lt;T,T_DEL&gt;</tt>
+	<li><tt>std::unordered_map&lt;K,V,HASH,EQ,ALLO&gt;</tt>
+	<li><tt>std::unordered_multimap</tt>&emsp;<i>See</i>&ensp;<tt>std::unordered_map</tt>
+	<li><tt>std::unordered_multiset</tt>&emsp;<i>See</i>&ensp;<tt>std::unordered_set</tt>
+	<li><tt>std::unordered_set&lt;E,HASH,EQ,ALLO&gt;</tt>
+	<li><tt>std::variant&lt;T1,T2,&hellip;&gt;</tt>
+	<li><tt>std::vector&lt;E,ALLO&gt;</tt>
+	  <!--	<li><tt>std::vector&lt;bool,ALLO&gt;</tt> -->
+	  <!-- TODO: see what happens if vector<bool> but custom allo. -->
+	<li><tt>std::weak_ptr&lt;T&gt;</tt>
+  </ul>
+
+
+  <h2 id="where_tested">Appendix D: Environments Where Tested</h2>
+  <ul>
+	<li>GDB 8.1.1, GNU libstdc++ 7.3.0, MINGW32_NT_6.1 (MSYS2 MinGW 32-bit)
+	  <ul>
+		<li>Tested both directly in shell, and via GUD Mode of GNU Emacs 25.3.1
+		<li>Programs with <tt>std::basic_string_view</tt> <!-- and <tt>std::regex</tt> --> crash, so that not tested.
+	  </ul>
+	</li>
+	<li>GDB 8.2, GNU libstdc++ 8.3.1, GNU/Linux 4.18.0 (64-bit)
+  </ul>
+
+
+  <h2 id="coping">Appendix E: Known Issues with Known Workarounds</h2>
+
+  <h4>Command Barfs When Argument is a Multi-Token Expression</h4>
+  <pre>
+	p-type * bx._b4
+	Given 2 arguments, but command expects 1.
+  </pre>
+  Use a GDB convenience variable:
+  <pre>
+	set $foo = * bx._b4
+	p-type $foo
+  </pre>
+  Or just forego whitespace:
+  <pre>
+	p-type *bx._b4
+  </pre>
+
+
+  <h2 id="bugs">Appendix F: Known Issues without Workarounds</h2>
+  <table border="1" rules="all">
+	<colgroup span="2"></colgroup>
+	<tr><th>Descr</th><th>Notes</th></tr>
+
+	<tr>
+	  <td>
+		add support for <tt>std::basic_regex</tt>, <tt>std::sub_match</tt>, <tt>std::match_results</tt>
+	  </td>
+	  <td></td>
+	</tr>
+
+
+	<tr>
+	  <td>
+		see if maybe can pretty-print <tt>va_list</tt>? (the N of elements, at least?)
+	  </td>
+	  <td></td>
+	</tr>
+
+
+	<tr>
+	  <td>what if user has VT-100 equivalent (monochrome but can do bold and italic) terminal? what if user has a totally bare-bones monochrome without even bold?
+	  </td>
+	  <td></td>
+	</tr>
+
+  </table>
+
+
+
+  <h2 id="doc_lic">Appendix G: GNU Free Documentation License</h2>
+  <a href="GFDL.html">Here.</a>
+
+
+</body>
+</html>
+<!-- Vainstein K 2020jul31 -->

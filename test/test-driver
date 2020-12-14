@@ -1,0 +1,262 @@
+#!/usr/bin/bash
+
+#                                          Copyright 2020 Vainstein K.
+# --------------------------------------------------------------------
+# This file is part of PrCxx.
+# 
+# PrCxx is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# any later version.
+# 
+# PrCxx is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with PrCxx.  If not, see <https://www.gnu.org/licenses/>.
+
+export LC_ALL='C'
+unset GREP_OPTIONS
+
+customize_callerFrameStr () {
+	local -ra callerFrame=( `caller 1` )
+	local -r lineNum=${callerFrame[0]}
+	local -r funcName=${callerFrame[1]}
+	echo "\e[35m($lineNum,$funcName)\e[0m"
+}
+
+tell () {
+	local -r msg="$*"
+	local -ri msgLen=${#msg}
+	local rjust='  '
+	if [ $msgLen -le 45 ]; then
+		printf -v rjust "%*s" $((47 - msgLen)) ''
+	fi
+	echo -e "${msg}${rjust}`customize_callerFrameStr`" >&2
+}
+
+die () {
+	echo -e "\n\t\e[31;1mERR!\e[0m" >&2
+	echo -e "\e[31m$*\e[0m    `customize_callerFrameStr`" >&2
+	exit 1
+}
+
+
+################ parse cmdline args ################
+
+readonly msgUSAGE="\e[31mUSAGE:\e[0m <testSource.cpp> [-w|-b|-s|-r|-c]"\
+"\n\t""\e[35;1m""w""\e[0m: generate_wantedOut"\
+"\n\t""\e[35;1m""b""\e[0m: build_exe"\
+"\n\t""\e[35;1m""s""\e[0m: generate_scriptGdb"\
+"\n\t""\e[35;1m""r""\e[0m: run_exe"\
+"\n\t""\e[35;1m""c""\e[0m: compare_output"\
+""
+
+msgUSAGE_and_die () {
+	echo -e "$msgUSAGE" >&2
+	exit 2
+}
+
+( [ $# -eq 1 ] || [ $# -eq 2 ] ) || msgUSAGE_and_die
+readonly srcCpp=$1
+readonly verb="$2"
+
+if [ -n "$verb" ]; then
+	[[ $verb =~ ^-[wbsrc]$ ]] || msgUSAGE_and_die
+	readonly doAll=false
+else
+	readonly doAll=true
+fi
+
+
+################ check needed files ################
+which diff &>/dev/null || die 'Lack diff in path'
+which g++ &>/dev/null || die 'Lack g++ in path'
+which gdb &>/dev/null || die 'Lack gdb in path'
+
+readonly setupGdb='_setup.gdb'
+[ -e $setupGdb ] || die "See no $setupGdb; have you run ../installer ?"
+
+[ -e $srcCpp ] || die "See no $srcCpp"
+readonly dir=${srcCpp%%.cpp}
+
+if $doAll; then
+	rm -rf $dir || die 'Fail rm'
+	mkdir  $dir || die 'Fail mkdir'
+elif [ $verb == '-w' ]; then
+	mkdir -p $dir || die 'Fail mkdir -p'
+else
+	[ -d $dir ] || die "See no $dir/"
+fi
+
+cd $dir || die 'Fail cd'
+
+
+################ payload logic ################
+readonly wantedOut='wanted.out'
+readonly exe='a.exe'
+readonly scriptGdb='script.gdb'
+readonly actualOut='actual.out'
+
+
+generate_wantedOut ()
+{
+	tell "Generating $wantedOut ..."
+	local line='' seekingBlockBegin=false seekingBlockEnd=false
+	local -i i_line=0
+	rm -fv $wantedOut
+	local -r reBlockBegin='^[ \t]*/\*[ \t]*$'
+	local -r reBlockEnd='^[ \t]*\*/[ \t]*$'
+	local grepTok
+	while read line; do
+		i_line+=1
+		[[ $line =~ ///TODO/// ]] && {
+			continue
+		}
+		[[ $line =~ //CMD ]] && {
+			echo "# Line $i_line"
+			seekingBlockBegin=true
+			continue
+		}
+		[[ $line =~ //GREP1 ]] && {
+			s="$line"
+			grepTok="${s##*,,,}"
+			grepTok="${grepTok//\\t/}"
+			echo "# Line $i_line # grepTok = $grepTok"
+			seekingBlockBegin=true
+			continue
+		}
+		$seekingBlockBegin && {
+			if [[ $line =~ $reBlockBegin ]]; then
+				seekingBlockBegin=false
+				seekingBlockEnd=true
+			fi
+			continue
+		}
+		$seekingBlockEnd && {
+			if [[ $line =~ $reBlockEnd ]]; then
+				seekingBlockEnd=false
+				echo
+			else
+				echo "$line"
+			fi
+			continue
+		}
+	done < <(sed 's/[ \t]*$//' ../$srcCpp) >$wantedOut
+	sed -i '/^$/ {x; /^$/ d; x}; h' $wantedOut # Compress consecutive empties.
+	[ -s $wantedOut ] || die "Missing, or empty, $wantedOut"
+}
+( $doAll || [ $verb == '-w' ] ) && generate_wantedOut
+
+
+build_exe ()
+{
+	tell "Building $exe ..."
+	rm -fv $exe
+	g++ -O0 -g -ggdb3 -std=gnu++1z ../$srcCpp -o $exe || die 'Fail g++'
+	[ -s $exe ] || die "Missing, or empty, $exe"
+}
+( $doAll || [ $verb == '-b' ] ) && build_exe
+
+generate_shared_prologue ()
+{
+	local -ri i_line=$1
+	local grepTok=$2
+	[ -n "${grepTok}" ] && grepTok=" # grepTok = $grepTok"
+	#
+			echo "tb $((i_line + 1))"
+			echo "commands"
+			echo -n -e "\t"; echo "silent"			
+			echo -n -e "\t"; echo "echo # Line ${i_line}${grepTok}\n"
+}
+#
+generate_shared_epilogue ()
+{
+			echo -n -e "\t"; echo "echo \n"
+			echo -n -e "\t"; echo "c"
+			echo "end"
+			echo
+}
+#
+generate_scriptGdb ()
+{
+	tell "Generating $scriptGdb ..."
+	local line=''
+	local -i i_line=0
+	rm -fv $scriptGdb
+	local cmdName cmdArgs cmdSeq cmdArg grepTok
+	declare -a seq_tokens
+	while read line; do
+		i_line+=1
+		[[ $line =~ ///TODO/// ]] && {
+			continue
+		}
+		#
+		if [[ $line =~ ^(.*//CMD:)([a-z][a-z0-9_/-]*)(//[ \t]*)(.*)$ ]]; then
+			cmdName=${BASH_REMATCH[2]}
+			cmdArgs="${BASH_REMATCH[4]}"
+			generate_shared_prologue $i_line
+			echo -n -e "\t"; echo "${cmdName} ${cmdArgs}"
+			generate_shared_epilogue
+		#
+		elif [[ $line =~ ^(.*//CMDSEQ//)(.*)$ ]]; then
+			cmdSeq=${BASH_REMATCH[2]}
+			generate_shared_prologue $i_line
+			echo "$cmdSeq" | sed 's/^[ \t]*//; s/@@@/\n/g' | sed 's/^[ ]*/\t/; s/[ ]*$//'
+			generate_shared_epilogue
+		#
+		elif [[ $line =~ ^(.*//GREP1:)([a-z][a-z0-9_-]*)//[^a-z_]*([a-z_][a-zA-Z0-9_\.]*)[^@]*,,,[^a-zA-Z0-9_]*([a-z_][a-zA-Z0-9_\.]*).*$ ]]; then
+			cmdName=${BASH_REMATCH[2]}
+			cmdArg="${BASH_REMATCH[3]}"
+			grepTok="${BASH_REMATCH[4]}"
+			generate_shared_prologue $i_line $grepTok
+			echo -n -e "\t"; echo "${cmdName} ${cmdArg}"
+			generate_shared_epilogue
+		#
+		fi
+	done <../$srcCpp >$scriptGdb
+	[ -s $scriptGdb ] || die "Missing, or empty, $scriptGdb"
+	echo 'r' >> $scriptGdb
+}
+( $doAll || [ $verb == '-s' ] ) && generate_scriptGdb
+
+
+run_exe ()
+{
+	[ -e $scriptGdb ] || die "Missing expected $scriptGdb"
+	tell "Running $exe under GDB, into $actualOut ..."
+	rm -fv $actualOut ?-$actualOut
+	# --batch: Disable pagination, assume terminal width/length unlimited, etc.
+	# --nw: Don't bring up a GUI window if that would normally be an option.
+	# --nx: Ignore any .gdbinit files in $HOME or elsewhere.
+	gdb --batch --nw --nx -d $PWD -se $exe -x ../$setupGdb -x $scriptGdb &> 0-$actualOut || die 'Fail gdb'
+	[ -s 0-$actualOut ] || die "Missing, or empty, 0-$actualOut"
+	sed 's/\o33\[[0-9][0-9;]*m//g'             0-$actualOut > 1-$actualOut # Strip ANSI escape sequences.
+	sed '/^Temporary breakpoint/ d; /^warning: Loadable section/ d'            1-$actualOut > 2-$actualOut
+	sed '/^\[Inferior .* exited normally]$/ d' 2-$actualOut > 3-$actualOut
+	sed 's/^\$[1-9][0-9]* = //'                3-$actualOut > 4-$actualOut # Strip GDB's value history marks.
+	awk 'BEGIN {grepTok=""} /^# Line [1-9][0-9]* # grepTok =/ {grepTok=$NF; print; next} /^# Line [1-9][0-9]*/ {grepTok=""; print; next} length && length(grepTok) && ! match($0, "\\<" grepTok "\\>") {next} {print}' 4-$actualOut > 5-$actualOut
+	sed '/^$/ {x; /^$/ d; x}; h'               5-$actualOut > 6-$actualOut # Compress consecutive empties.
+	cp 6-$actualOut $actualOut
+	[ -s $actualOut ] || die "Missing, or empty, $actualOut"
+	local -ri paydirtLineCt=`egrep -cv '^$|^#' $actualOut`
+	[ $paydirtLineCt -eq 0 ] && die "No paydirt in $actualOut"
+}
+( $doAll || [ $verb == '-r' ] ) && run_exe
+
+
+compare_output ()
+{
+	[ -e $actualOut ] || die "Missing expected $actualOut"
+	[ -e $wantedOut ] || die "Missing expected $wantedOut"
+sed -i '0,/./ { /^$/ d;}' $actualOut
+	tell "Comparing $actualOut against $wantedOut ..."
+	diff --ignore-all-space --color=auto -U 0 --show-function-line='^# Line' $actualOut $wantedOut || die 'Not same'
+}
+( $doAll || [ $verb == '-c' ] ) && compare_output
+
+
+echo -e "\t\e[32;1mOK\e[0m" >&2
+exit 0

@@ -1,0 +1,175 @@
+#!/bin/bash
+
+#                                          Copyright 2020 Vainstein K.
+# --------------------------------------------------------------------
+# This file is part of PrCxx.
+# 
+# PrCxx is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# any later version.
+# 
+# PrCxx is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with PrCxx.  If not, see <https://www.gnu.org/licenses/>.
+
+
+################################# Prep ################################
+
+# Try to minimize surprises due to how someone's Bash is customized.
+builtin enable 'caller' 'command' 'echo' 'exit' 'export' 'local' 'readonly' 'set' 'shopt' 'unset' 2>/dev/null 
+builtin set +o errexit
+builtin set +o noclobber
+builtin set -o nounset
+builtin set +o posix
+[ $BASH_VERSINFO -gt 3 ] && builtin shopt -u expand_aliases
+
+builtin unset -f tell 2>/dev/null
+builtin unset -f die 2>/dev/null
+
+unset GREP_OPTIONS
+
+tell () {
+	builtin echo -e "\e[35m$*\e[0m" >&2
+}
+die () {
+	local -ra callerFrame=( `caller 0` )
+	builtin echo -e "(Ln:$callerFrame)  \e[31;1mFATAL\e[0m  $*" >&2
+	builtin exit 1
+}
+
+builtin export PATH=${PATH}:/usr/local/bin:/usr/bin
+
+builtin readonly installerPath=`command realpath --canonicalize-existing $0`
+builtin readonly originDir=`command dirname $installerPath`
+
+
+################################# Check Prerequisites #################
+
+if [ $# -eq 0 ]; then
+	builtin readonly gdbPath=`command which gdb`
+elif [ $# -eq 1 ]; then
+	builtin readonly gdbPath=$1
+else
+	die "USAGE: $0 [gdbPath]"
+fi
+[ -z "$gdbPath" ] && die "Cannot find GDB."
+
+builtin readonly gdbVer=`$gdbPath --version | command sed 's/^.* //;q'`
+[ -z "$gdbVer" ] && die "Path '$gdbPath' does not seem to be a GDB."
+tell "Targeting GDB $gdbVer at $gdbPath\n"
+
+# Was GDB configured with Python?
+if [[ $gdbVer =~ ^8\. ]]; then
+	$gdbPath --configuration | command grep -q -- '--with-python\>' || die "GDB not configured with Python support"
+else
+	builtin readonly nullTempfile=`command mktemp`
+	command touch $nullTempfile || die "Cannot touch $nullTempfile"
+	$gdbPath --nx --batch --ex 'python print(42)' 1>/dev/null
+	[ $? -eq 0 ] || die "GDB not configured with Python support"
+	command rm -f $nullTempfile
+fi
+
+builtin readonly gdbDataDir=`$gdbPath --nx --batch -ex 'show data-directory' | command sed 's/"\.$//;s/^.*"//'`
+[ -z "$gdbDataDir" ] && die "Could not find GDB's \e[;1m""data-directory\e[0m"
+
+# Have we Python3?
+pyInterpreterPath=`command which python3`
+[ -z "$pyInterpreterPath" ] && {
+	pyInterpreterPath=`command which python`
+	[ -z "$pyInterpreterPath" ] || {
+		builtin readonly pyVer=`command python --version | command tr -d 'a-zA-Z '`
+		[[ $pyVer =~ ^3\. ]] && die "Python $pyVer found (at $pyInterpreterPath), but require Python 3.x.y"
+	}
+}
+[ -z "$pyInterpreterPath" ] && die "Python 3.x.y not found in PATH ($PATH)"
+
+
+################################# Copy Over Our .py Files #############
+
+builtin readonly gdbPythonDir=${gdbDataDir}/python
+[ -d $gdbPythonDir ] || {
+	command mkdir -m 0755 -p $gdbPythonDir || die "Cannot mkdir $gdbPythonDir"
+}
+
+builtin readonly pyScriptsDestDir=$gdbPythonDir/PrCxx
+command rm -rf $pyScriptsDestDir
+command mkdir -m 0755 -p $pyScriptsDestDir || die "Cannot mkdir $pyScriptsDestDir"
+
+command install -m 0444 --preserve-timestamps $originDir/src/*.py $pyScriptsDestDir || die "Cannot copy to $pyScriptsDestDir"
+
+
+########################## Generate .gdbinit Files #####################
+
+builtin readonly testSetupGdbinit=$originDir/test/_setup.gdb
+command cat    >$testSetupGdbinit <<LIMITstr
+# vim: syntax=gdb
+### Generated `date +'on %Y %b %d at %H:%M:%S.%6N'` by $installerPath
+set print inferior-events off
+set print thread-events off
+set python print-stack full
+set verbose off
+#		set debug auto-load on
+set auto-load python-scripts on
+set auto-load scripts-directory ${pyScriptsDestDir}
+cd ${pyScriptsDestDir}
+set environment PYTHONPATH=.:..:${gdbPythonDir}
+source ${pyScriptsDestDir}/__init__.py
+set python print-stack full
+set print pretty off
+set print array off
+LIMITstr
+[ -s $testSetupGdbinit ] || die "Failed to write $testSetupGdbinit file."
+command chmod 0440 $testSetupGdbinit 2>/dev/null
+
+builtin readonly generatedGdbinit=$HOME/.PrCxx.gdbinit
+command cat    >$generatedGdbinit <<LIMITstr
+# vim: syntax=gdb
+### Generated `date +'on %Y %b %d at %H:%M:%S.%6N'` by $installerPath
+### Targeting the GDB $gdbVer at $gdbPath
+#		set debug auto-load on
+set auto-load python-scripts on
+set auto-load scripts-directory ${pyScriptsDestDir}
+cd ${pyScriptsDestDir}
+set environment PYTHONPATH=.:..:${gdbPythonDir}
+### Once in end-user.gdbinit, we shall dial back 'python print-stack' to just 'message';
+### but just now we want full details, to help troubleshoot if scripts fail to load.
+set python print-stack full
+source ${pyScriptsDestDir}/__init__.py
+source ${originDir}/end-user.gdbinit
+### To enable developer aids, uncomment next line.
+#source ${originDir}/developer.gdbinit
+echo PrCxx loaded.\n
+LIMITstr
+[ -s $generatedGdbinit ] || die "Failed to write $generatedGdbinit file."
+command chmod 0440 $generatedGdbinit 2>/dev/null
+
+
+################################# Generate un-installer Script ########
+
+# Yes could truncate generatedGdbinit & spare user the extra manual step;
+# but then headaches if ever re-install.  Plus, "clean up after yourself".
+
+builtin readonly uninstallerPath=$originDir/un-installer
+command cat    >$uninstallerPath <<LIMITstr
+#/bin/bash
+### Generated `date +'on %Y %b %d at %H:%M:%S.%6N'` by $installerPath
+command rm -rfv $pyScriptsDestDir
+command rm  -fv $testSetupGdbinit $generatedGdbinit
+command find $originDir/test -mindepth 2 -type f -delete
+command find $originDir/test -mindepth 1 -type d -delete
+command rm -fv $uninstallerPath
+builtin echo -e "\\n\\e[35mRemove reference to $generatedGdbinit from your primary .gdbinit file.  (For example,\\n\\t\\e[0m""sed -i /PrCxx/d ~/.gdbinit\\e[35m\\n"".)\\e[0m" >&2
+builtin exit 0
+LIMITstr
+[ -s $uninstallerPath ] || die "Failed to write $uninstallerPath file."
+command chmod 0540 $uninstallerPath 2>/dev/null
+
+
+tell "To activate PrCxx, append the line\n\t\e[0m""source $generatedGdbinit\e[35m\n""to your primary .gdbinit file.  (For example,\n\t\e[0m""echo 'source $generatedGdbinit' >> ~/.gdbinit\e[35m\n"".)"
+
+builtin exit 0
