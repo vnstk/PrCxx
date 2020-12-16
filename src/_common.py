@@ -178,6 +178,15 @@ def fixBroketSpacing (s):
 	return s.replace('>>', '> >') # how GCC does it (required before C++11)
 
 
+# For when GDB says a template argslist is "<FOO,5ul>" and we want just "<FOO,5>"
+def strip__size_t__ulSuffix (s):
+	import re
+	pat = r'\b(\d+)[Uu][Ll]?\b'
+	replaceWith = r'\1'
+	z = re.sub(pat, replaceWith, s)
+	return z
+
+
 def replace_atTokenBoundaries (sWhat, sWith, sIn):
 	import re
 	sWhat__escaped = sWhat

@@ -216,7 +216,10 @@ class std__list (SequencePP):
 			self.sz_overhead = (storageArr_wrapper.type.sizeof + self.payload_offset * (self.nElements + 1))
 			self.p_head = v_impl_node.address
 		else:
-			self.nElements = int(v_impl_node['_M_size'])
+			if v_impl_node.type.has_key('_M_size'): # GNU stdlibc++ 7?
+				self.nElements = int(v_impl_node['_M_size'])
+			else:                                   # GNU stdlibc++ 5.4?
+				self.nElements = int(v_impl_node['_M_data'])
 			self.nElements_allocated = self.nElements
 			self.payload_offset = 2 * WORD_WIDTH.const # To accomodate _M_prev and _M_next pointers.
 			targetType = get_basic_type(self.elementType)

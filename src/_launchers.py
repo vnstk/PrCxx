@@ -355,7 +355,7 @@ from _preferences import *
 
 class X_Remind (gdb.Command):
 	"""x-remind\n
-Shows at once all of V2_GDB_Pretty_Cxx's custom GDB parameters.\nFor each, lists the possible values; of those,
+Shows at once all of PrCxx's custom GDB parameters.\nFor each, lists the possible values; of those,
 \to\t the *default* value is shown bracketed
 \to\t the *current* value is shown with yellow background"""
 	def __init__ (self):
@@ -391,7 +391,7 @@ Shows at once all of V2_GDB_Pretty_Cxx's custom GDB parameters.\nFor each, lists
 
 class X_DefaultAll (gdb.Command):
 	"""x-default-all\n
-Resets all V2_GDB_Pretty_Cxx's custom GDB parameters to respective defaults."""
+Resets all PrCxx's custom GDB parameters to respective defaults."""
 	def __init__ (self):
 		super(X_DefaultAll, self).__init__("x-default-all", gdb.COMMAND_STATUS)
 	def complete (self, argsAsOneString, lastArg):
@@ -507,7 +507,44 @@ Prints a few items of summary information about the given object."""
 			_common.die('Cannot find symbol.')
 
 
-################### Eh??? #######
+
+##### Launcher logic proper: z-* commands  ##############################
+
+class Z_Remind (gdb.Command):
+	"""z-remind\n
+Prints command syntax of the most commonly used of PrCxx's custom GDB commands."""
+	def __init__ (self):
+		super(Z_Remind, self).__init__("z-remind", gdb.COMMAND_SUPPORT)
+	def complete (self, argsAsOneString, lastArg):
+		return gdb.COMPLETE_NONE
+	def invoke (self, argsAsOneString, isFromTTY):
+		altBar = sprintf('%s|%s',resetFONT,italicFONT)
+		a = [''
+			 , 'x-remind'
+			 , 'x-default-all'
+			 , ''.rjust(48,'-')
+			 , sprintf('q-target-addr     %s''indirectorObj%s' ,italicFONT,resetFONT)
+			 , sprintf('q-iter-into       %s''aggregObj  iterObj%s' ,italicFONT,resetFONT)
+			 , sprintf('q-count-elems     %s''aggregObj%s' ,italicFONT,resetFONT)
+			 , sprintf('q-has-elem        %s''aggregObj  idx %s key%s' ,italicFONT,altBar,resetFONT)
+			 , sprintf('q-elem            %s''aggregObj  idx %s key%s' ,italicFONT,altBar,resetFONT)
+			 , sprintf('q-elem-addr       %s''aggregObj  idx %s key%s' ,italicFONT,altBar,resetFONT)
+			 , sprintf('q-elem-key-addr   %s''aggregObj  idx %s key%s' ,italicFONT,altBar,resetFONT)
+			 , sprintf('q-buckets         %s''aggregObj_based_on_hashtable%s' ,italicFONT,resetFONT)
+			 , sprintf('q-more            %s''any_supported_STL_obj%s' ,italicFONT,resetFONT)
+			 , ''.rjust(48,'-')
+			 , sprintf('q-whatis   %s''someObj%s' ,italicFONT,resetFONT)
+			 , sprintf('p-type     %s''someObj %s typeName%s' ,italicFONT,altBar,resetFONT)
+			 , sprintf('p-stype    %s''          typeName%s' ,italicFONT,resetFONT)
+			 , sprintf('p-vtype    %s''someObj           %s' ,italicFONT,resetFONT)
+			 , sprintf('p-deep     %s''someObj           %s' ,italicFONT,resetFONT)
+			 , ''
+			 ]
+		for aline in a:
+			printf('\t%s\n', aline)
+
+
+
 from _codes_stringified import *
 from _pp_base_classes import dump_ppObj_pythonClassDerivation
 from _pp_base_classes import dump_ppObj_internalLookups

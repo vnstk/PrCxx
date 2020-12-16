@@ -1,17 +1,17 @@
 #                                          Copyright 2020 Vainstein K.
 # --------------------------------------------------------------------
 # This file is part of PrCxx.
-# 
+#
 # PrCxx is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # any later version.
-# 
+#
 # PrCxx is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with PrCxx.  If not, see <https://www.gnu.org/licenses/>.
 
@@ -64,7 +64,7 @@ class BasePP (gdb.printing.PrettyPrinter):
 	def moreInfo (self):
 		for x in self.miscInfo:
 			printf('%s\n', x)
-		#		
+		#
 		if len(self.traitsInfo):
 			printf('traits: {\n')
 			for x in self.traitsInfo:
@@ -403,37 +403,37 @@ class AssociativePP (AggregatePP): # a.k.a. "KeyedLookup"
 #		printf('str? %s\n', str(isinstance(key,str)))
 #		printf('int? %s\n', str(isinstance(key,numbers.Integral)))
 		if self.keysOnly:
-			for i in range(0, self.nElements, 1):
+			for i in range(0, self.nElements    , 1):
 				if self.sameAs(key, self.printables[i][1]): return True
 		else:
-			for i in range(0, self.nElements, 2):
+			for i in range(0, self.nElements * 2, 2):
 				if self.sameAs(key, self.printables[i][1]): return True
 		return False
 	def getElement (self, key):
 		assert self.stringformKeys!=None
 		if self.keysOnly:
-			for i in range(0, self.nElements, 1):
+			for i in range(0, self.nElements    , 1):
 				if self.sameAs(key, self.printables[i][1]): return self.printables[i]
 		else:
-			for i in range(0, self.nElements, 2):
+			for i in range(0, self.nElements * 2, 2):
 				if self.sameAs(key, self.printables[i][1]): return self.printables[i+1]
 		die('Found no element keyed by =[=%s=]=', str(key))
 	def getElementAddress (self, key):
 		assert self.stringformKeys!=None
 		if self.keysOnly:
-			for i in range(0, self.nElements, 1):
+			for i in range(0, self.nElements    , 1):
 				if self.sameAs(key, self.printables[i][1]): return self.elemAddrs[i]
 		else:
-			for i in range(0, self.nElements, 2): # Must use "//" when dividing integers.
+			for i in range(0, self.nElements * 2, 2): # Must use "//" when dividing integers.
 				if self.sameAs(key, self.printables[i][1]): return self.elemAddrs[i//2]
 		die('Found no element keyed by =[=%s=]=' % (str(key)))
 	def getElementKeyAddress (self, key):
 		assert self.stringformKeys!=None
 		if self.keysOnly:
-			for i in range(0, self.nElements, 1):
+			for i in range(0, self.nElements    , 1):
 				if self.sameAs(key, self.printables[i][1]): return self.keyAddrs[i]
 		else:
-			for i in range(0, self.nElements, 2): # Must use "//" when dividing integers.
+			for i in range(0, self.nElements * 2, 2): # Must use "//" when dividing integers.
 				if self.sameAs(key, self.printables[i][1]): return self.keyAddrs[i//2]
 		die('Found no element keyed by =[=%s=]=' % (str(key)))
 

@@ -760,6 +760,11 @@ def simplifyTypename (focus_kind, focus_gdbType, focus_strName, toplevKn,
 
 	#____________________________________________________________________________#
 	sav = result
+	result = strip__size_t__ulSuffix(result)
+	traceSubst('suL-bst', sav, 'ul-suffix-with','ul-suffix-sans' ,result  ,False)
+
+	#____________________________________________________________________________#
+	sav = result
 	result = strip__cxx11(result)
 	traceSubst('suB-bst', sav, 'cxx11-with','cxx11-sans' ,result  ,False)
 
