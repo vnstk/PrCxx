@@ -18,6 +18,7 @@
 #include <deque>
 #include <list>
 #include <queue>
+#include <cstddef> //For: size_t
 
 int main ( )
 {	bool dummy; int iv; size_t sz;

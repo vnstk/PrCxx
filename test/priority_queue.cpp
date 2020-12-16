@@ -15,6 +15,7 @@
 * You should have received a copy of the GNU General Public License
 * along with PrCxx.  If not, see <https://www.gnu.org/licenses/>.
 */
+#include <cstddef> // For: size_t
 #include <deque>
 #include <queue> // Is no <priority_queue>.
 #include <vector>

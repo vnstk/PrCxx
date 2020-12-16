@@ -100,7 +100,6 @@ readonly exe='a.exe'
 readonly scriptGdb='script.gdb'
 readonly actualOut='actual.out'
 
-
 generate_wantedOut ()
 {
 	tell "Generating $wantedOut ..."
@@ -157,6 +156,13 @@ build_exe ()
 	rm -fv $exe
 	g++ -O0 -g -ggdb3 -std=gnu++1z ../$srcCpp -o $exe || die 'Fail g++'
 	[ -s $exe ] || die "Missing, or empty, $exe"
+	# Check for specially named global symbol
+	which nm &>/dev/null && {
+		nm $exe | fgrep -q -w 'stdlibcXX_is_too_old' && {
+			tell 'Skipping this unit test, because site stdlibc++ is too old for it.'
+			exit 0
+		}
+	}
 }
 ( $doAll || [ $verb == '-b' ] ) && build_exe
 
@@ -251,9 +257,10 @@ compare_output ()
 {
 	[ -e $actualOut ] || die "Missing expected $actualOut"
 	[ -e $wantedOut ] || die "Missing expected $wantedOut"
+# XXX Eh? Need this?
 sed -i '0,/./ { /^$/ d;}' $actualOut
 	tell "Comparing $actualOut against $wantedOut ..."
-	diff --ignore-all-space --color=auto -U 0 --show-function-line='^# Line' $actualOut $wantedOut || die 'Not same'
+	diff --ignore-all-space -U 0 --show-function-line='^# Line' $actualOut $wantedOut || die 'Not same'
 }
 ( $doAll || [ $verb == '-c' ] ) && compare_output
 

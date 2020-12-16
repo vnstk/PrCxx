@@ -15,6 +15,13 @@
 * You should have received a copy of the GNU General Public License
 * along with PrCxx.  If not, see <https://www.gnu.org/licenses/>.
 */
+#if __cplusplus < 201703L
+# warning "Your stdlibc++ is too old"
+int main ( ) { }
+int stdlibcXX_is_too_old = 42;
+#else
+
+
 #include <string>
 #include <string_view>
 
@@ -234,3 +241,4 @@ int main ( )
 
 	return 0;
 }
+#endif

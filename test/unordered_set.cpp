@@ -125,5 +125,105 @@ int main ( )
 					0
 	*/
 
+
+	/* ========================================================
+	   Make sure q-elem and q-has-elem succeed with elements
+	   _not_ at head of a bucket's chained list, too.
+	   ========================================================
+	*/
+	std::unordered_set<const char *> zs(
+		{"ccc", "qqq", "bbb", "ddd", "fff", "ttt", "eee"}
+	);
+
+	dummy=true;					//CMD:q-count-elems//	zs
+	/*
+					7
+	*/
+//
+	dummy=true;					//CMD:q-has-elem//		zs  "noneSuch"
+	/*
+					false
+	*/
+	dummy=true;					//CMD:q-elem//			zs  "ccc"
+	/*
+					"ccc"
+	*/
+//
+	dummy=true;					//CMD:q-has-elem//		zs  "ccc"
+	/*
+					true
+	*/
+	dummy=true;					//CMD:q-has-elem//		zs  "qqq"
+	/*
+					true
+	*/
+	dummy=true;					//CMD:q-has-elem//		zs  "bbb"
+	/*
+					true
+	*/
+	dummy=true;					//CMD:q-has-elem//		zs  "ddd"
+	/*
+					true
+	*/
+	dummy=true;					//CMD:q-has-elem//		zs  "fff"
+	/*
+					true
+	*/
+	dummy=true;					//CMD:q-has-elem//		zs  "ttt"
+	/*
+					true
+	*/
+	dummy=true;					//CMD:q-has-elem//		zs  "eee"
+	/*
+					true
+	*/
+
+	zs.max_load_factor(/*# elems per bucket*/ 5.0);
+	zs.rehash(/*bucket count*/ 2U);
+
+	dummy=true;					//CMD:q-count-elems//	zs
+	/*
+					7
+	*/
+//
+	dummy=true;					//CMD:q-has-elem//		zs  "noneSuch"
+	/*
+					false
+	*/
+	dummy=true;					//CMD:q-elem//			zs  "ccc"
+	/*
+					"ccc"
+	*/
+//
+	dummy=true;					//CMD:q-has-elem//		zs  "ccc"
+	/*
+					true
+	*/
+	dummy=true;					//CMD:q-has-elem//		zs  "qqq"
+	/*
+					true
+	*/
+	dummy=true;					//CMD:q-has-elem//		zs  "bbb"
+	/*
+					true
+	*/
+	dummy=true;					//CMD:q-has-elem//		zs  "ddd"
+	/*
+					true
+	*/
+	dummy=true;					//CMD:q-has-elem//		zs  "fff"
+	/*
+					true
+	*/
+	dummy=true;					//CMD:q-has-elem//		zs  "ttt"
+	/*
+					true
+	*/
+	dummy=true;					//CMD:q-has-elem//		zs  "eee"
+	/*
+					true
+	*/
+
+
 	return 0;
 }

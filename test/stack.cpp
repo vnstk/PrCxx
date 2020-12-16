@@ -19,6 +19,7 @@
 #include <list>
 #include <stack>
 #include <vector>
+#include <cstddef> //For: size_t
 
 int main ( )
 {	bool dummy; int iv; size_t sz;

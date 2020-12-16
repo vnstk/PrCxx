@@ -19,30 +19,51 @@
 
 int main ( )
 {	bool dummy;
+
 	std::pair<double,const unsigned long *> px;	//CMD:q-count-elems//	px
 	/*
 					2
 	*/
-	std::pair<const char *,long> py =
-		std::make_pair(nullptr, 123456789);				//CMD:p//	py
+
+	std::pair<const char *,long> pz =
+		std::make_pair(nullptr, 123456789);		//CMD:p//	pz
 	/*
 					{0x0,123456789}
 	*/
-	dummy=true;										//CMD:q-has-elem//	py 0
+	dummy=true;									//CMD:q-has-elem//	pz 0
 	/*
 					true
 	*/
-	dummy=true;										//CMD:q-has-elem//	py 1
+	dummy=true;									//CMD:q-has-elem//	pz 1
 	/*
 					true
 	*/
-	dummy=true;										//CMD:q-has-elem//	py 2
+	dummy=true;									//CMD:q-has-elem//	pz 2
 	/*
 					false
 	*/
-	dummy=true;										//CMD:q-elem//		py 1
+	dummy=true;									//CMD:q-elem//		pz 1
 	/*
 					123456789
 	*/
+
+	pz.first = "zzz";							//CMD:q-elem//	pz 0
+	/*
+					"zzz"
+	*/
+	dummy=true;									//CMD:q-elem//	pz first
+	/*
+					"zzz"
+	*/
+
+	pz.second = -42;							//CMD:q-elem//	pz 1
+	/*
+					-42
+	*/
+	dummy=true;									//CMD:q-elem//	pz second
+	/*
+					-42
+	*/
+
 	return 0;
 }

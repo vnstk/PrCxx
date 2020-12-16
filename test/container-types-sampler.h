@@ -31,7 +31,7 @@
 #include <queue> //For- std::priority_queue, std::queue
 #include <stack>
 #include <string>
-#include <string_view>
+// #include <string_view>  Not available on pre-2016 GNU stdlibc++'s.
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -92,7 +92,7 @@ struct TypesSampler
 	//________________________________________________________
 	// "f" |||    std::basic_string_view<ChT,ChTraits>
 	//========================================================
-		/******** TODO ! ! ! **********/
+			// Not available on pre-2016 GNU stdlibc++'s.
 
 	//________________________________________________________
 	// "g" |||    std::forward_list<E,ALLO>

@@ -38,19 +38,36 @@ union BitwiseConverter__float_X_uint32 {
 **#################################################################
 */
 
-// Adapted from https://en.cppreference.com/w/cpp/named_req/Allocator
 template <class T>
 struct Mallo {
 	typedef T value_type;
 	Mallo() = default;
 	template <class U> constexpr Mallo (const Mallo<U>&) noexcept {}
-	[[nodiscard]] T* allocate (const std::size_t n) {
+#if __cplusplus >= 201703L
+	[[nodiscard]]
+#endif
+	              T* allocate (const std::size_t n) {
 		if(n > std::size_t(-1) / sizeof(T)) throw std::bad_alloc();
 		if(auto p = static_cast<T*>(std::malloc(n*sizeof(T)))) return p;
 		throw std::bad_alloc();
 	}
 	void deallocate (T* p, const std::size_t) noexcept { std::free(p); }
-};
+#if __cplusplus < 201703L
+	typedef T* pointer;
+	typedef const T* const_pointer;
+	typedef T& reference;
+	typedef const T& const_reference;
+	//
+	template< class U > struct rebind {
+		typedef std::allocator_traits<std::allocator<T>> a_t;
+        using other = Mallo<U>;
+	};
+	//
+	template<class U>
+	void destroy(U *p) { std::free(p); }
+#endif
+}; // Adapted from https://en.cppreference.com/w/cpp/named_req/Allocator
+   // , and https://en.cppreference.com/w/cpp/memory/allocator
 template <class T, class U>
 bool operator==(const Mallo<T>&, const Mallo<U>&) { return true; }
 template <class T, class U>
