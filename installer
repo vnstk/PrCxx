@@ -82,8 +82,8 @@ pyInterpreterPath=`command which python3`
 [ -z "$pyInterpreterPath" ] && {
 	pyInterpreterPath=`command which python`
 	[ -z "$pyInterpreterPath" ] || {
-		builtin readonly pyVer=`command python --version | command tr -d 'a-zA-Z '`
-		[[ $pyVer =~ ^3\. ]] && die "Python $pyVer found (at $pyInterpreterPath), but require Python 3.x.y"
+		builtin readonly pyVer=`command python --version 2>&1 | command tr -d 'a-zA-Z '`
+		[[ $pyVer =~ ^[3-9]\. ]] && die "Python $pyVer found (at $pyInterpreterPath), but require Python 3.x.y"
 	}
 }
 [ -z "$pyInterpreterPath" ] && die "Python 3.x.y not found in PATH ($PATH)"
@@ -103,6 +103,13 @@ command mkdir -m 0755 -p $pyScriptsDestDir || die "Cannot mkdir $pyScriptsDestDi
 command install -m 0444 --preserve-timestamps $originDir/src/*.py $pyScriptsDestDir || die "Cannot copy to $pyScriptsDestDir"
 
 
+# Comment out constants absent in this GDB installation.
+$gdbPath --nx --batch -ex 'py print(gdb.SYMBOL_LABEL_DOMAIN)' &>/dev/null
+[ $? -ne 0 ] && {
+	sed -i '/\<SYMBOL_LABEL_DOMAIN\>/ s/^/#/' $pyScriptsDestDir/_codes_stringified.py
+}
+
+
 ########################## Generate .gdbinit Files #####################
 
 builtin readonly testSetupGdbinit=$originDir/test/_setup.gdb
@@ -114,8 +121,9 @@ set print thread-events off
 set python print-stack full
 set verbose off
 #		set debug auto-load on
-set auto-load python-scripts on
+set auto-load python-scripts off
 set auto-load scripts-directory ${pyScriptsDestDir}
+set auto-load safe-path         ${pyScriptsDestDir}
 cd ${pyScriptsDestDir}
 set environment PYTHONPATH=.:..:${gdbPythonDir}
 source ${pyScriptsDestDir}/__init__.py

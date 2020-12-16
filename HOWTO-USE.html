@@ -168,7 +168,7 @@
 		</tr>
 	  </table>
 	<li><a href="#toplev_3">Miscellaneous Features</a>
-	<li><a href="#toplev_4">Extend, to Better Pretty-Print Your Own Types</a>
+	<li><a href="#toplev_4">Extend Custom Covergae to Your Own Types</a>
 	<li><a href="#custom_params">Appendix A: Custom GDB Parameters</a>
 	<li><a href="#pertinent_builtin_params">Appendix B: Most Pertinent of GDB's Built-In Parameters</a>
 	<li><a href="#supported_STL_types">Appendix C: Supported STL Types</a>
@@ -241,7 +241,7 @@
   <br>
   <br>
   <br>
-  <hr>  
+  <hr>
   Merely pretty-printing STL containers is no big deal; it might even be baked into your version of GDB.&ensp;But <b><i>we</i></b> have a few more tricks in store!
   <br>
 
@@ -810,7 +810,7 @@ bucketLoadStats: {
 
   <!-------------------------------------------------------------------------><br><br>
   <h3>Alternative Indexing of <tt>std::pair</tt></h3>
-  These will work as <i>lookupKey</i>:
+  These will all work as <i>lookupKey</i>:
   <ul>
 	<li><tt>0</tt> <b>or</b> <tt>first</tt>
 	<li><tt>1</tt> <b>or</b> <tt>second</tt>
@@ -818,21 +818,28 @@ bucketLoadStats: {
 
   <!-------------------------------------------------------------------------><br><br>
   <h3>Alternative Indexing of <tt>std::ratio</tt></h3>
-  These will work as <i>lookupKey</i> (case-insensitive):
+  These will all work as <i>lookupKey</i> (case-insensitive):
   <ul>
 	<li><tt>0</tt> <b>or</b> <tt>num</tt> <b>or</b> <tt>numer</tt>
 	<li><tt>1</tt> <b>or</b> <tt>den</tt> <b>or</b> <tt>denom</tt>
   </ul>
 
   <!-------------------------------------------------------------------------><br><br>
-  <h3 id="x-remind"><tt>x-remind</tt> Yourself of Parameters' Current & Default Values</h3>
-  Shows at once all of <a href="#custom_params">our custom GDB parameters</a>.  For each parameter, lists the possible values, with the <b>default</b> value shown bracketed, and the <b>current</b> value shown against yellow background.
+  <h3 id="x-remind"><tt>x-remind</tt> Yourself of PrCxx Parameters&apos; Current & Default Values</h3>
+  Shows at once all of <a href="#custom_params">PrCxx&apos;s custom GDB parameters</a>.  For each parameter, lists the possible values, with the <b>default</b> value shown bracketed, and the <b>current</b> value shown against yellow background.
   <p><img src="img/x-remind~594x222.png" width="594" height="222"/></p>
   In example above all parameters are set to their defaults, except for <var>x-relations</var>, <var>x-base-classes</var>, and <var>x-print-width--member-name</var>.
 
   <!-------------------------------------------------------------------------><br><br>
   <h3 id="x-default-all"><tt>x-default-all</tt></h3>
-  Resets all of <a href="#custom_params">our custom GDB parameters</a> to their defauls.
+  Resets all of <a href="#custom_params">PrCxx&apos;s custom GDB parameters</a> to their defauls.
+
+
+  <!-------------------------------------------------------------------------><br><br>
+  <h3 id="z-remind"><tt>z-remind</tt> Yourself of PrCxx Command Syntax</h3>
+  For the most commonly used of PrCxx&apos;s custom GDB commands:
+  <p><img src="img/z-remind~388x317.png" width="388" height="317"/></p>
+
 
 
   <h3><tt>z-frames</tt>, <tt>z-blocks</tt>, and Related</h3>
@@ -855,8 +862,15 @@ bucketLoadStats: {
   </p>
 
 
-  <h2 id="toplev_4">Extend, to Better Pretty-Print Your Own Types</h2>
-  <tt>// TODO</tt>
+  <h2 id="toplev_4">Extend Custom Coverage to Your Own Types</h2>
+  All these, &nbsp;<tt>// TODO</tt>.
+  <h3 id="ext_0">Rudimentary but Utile: Pretty-Print Fundamental Types Specially</h3>
+  So can <kbd>print</kbd> more helpfully.
+  <h3 id="ext_1">Containers and Iterators</h3>
+  So that <kbd>q-has-elem</kbd> <i>et al.</i> will work on your types too.
+  <h3 id="ext_2">Template Parameters&apos; Nicknames and Defaults</h3>
+  So that <var>x-template-arguments</var> affects presentation of your types just like STL types&apos;.
+
 
 
 
@@ -992,13 +1006,22 @@ Yeah, but not enough there to talk about.
 
   <h2 id="where_tested">Appendix D: Environments Where Tested</h2>
   <ul>
+
 	<li>GDB 8.1.1, GNU libstdc++ 7.3.0, MINGW32_NT_6.1 (MSYS2 MinGW 32-bit)
 	  <ul>
 		<li>Tested both directly in shell, and via GUD Mode of GNU Emacs 25.3.1
-		<li>Programs with <tt>std::basic_string_view</tt> <!-- and <tt>std::regex</tt> --> crash, so that not tested.
+		<li>Programs with <tt>std::basic_string_view</tt> <!-- and <tt>std::regex</tt> --> crash, so that not tested here.
 	  </ul>
 	</li>
+
 	<li>GDB 8.2, GNU libstdc++ 8.3.1, GNU/Linux 4.18.0 (64-bit)
+
+	<li>GDB 8.3.1, GNU libstdc++ 5.4.0, GNU/Linux 3.10.0 (64-bit)
+	  <ul>
+		<li>Pre-C++17, so <tt>std::basic_string_view</tt> unavailable, so that not tested here.
+	  </ul>
+	</li>
+
   </ul>
 
 
